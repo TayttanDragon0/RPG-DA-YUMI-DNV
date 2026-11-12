@@ -74,3 +74,14 @@ body.fx-control::after{background:repeating-linear-gradient(0deg,#0000 0 3px,#a0
 .heldItem{position:absolute;width:55%;top:30%;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 2px #000)}.heldItem.hand-R{right:-35%}.heldItem.hand-L{left:-35%;transform:scaleX(-1)}
 .bagGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.bagTile{text-align:center;font-size:10px;border:1px solid #4b37a8;padding:3px}.bagTile img{width:100%;aspect-ratio:1;object-fit:contain}.bagTile button{padding:2px 4px;font-size:10px}
 .bestEntry{border-top:1px solid #4b37a8;padding:4px 0;font-size:12px}.itemRow{display:flex;gap:6px;align-items:center;border-bottom:1px solid #ffffff18;padding:4px 0}.itemRow img{width:44px;height:44px;object-fit:contain}
+
+/* V18.1 — a mesa do jogador é somente leitura; apenas o próprio token é arrastável. */
+body.player #backgroundLayer,
+body.player #gridOverlay,
+body.player #fogLayer,
+body.player #wallLayer,
+body.player #rulerLayer { pointer-events:none !important; }
+body.player #viewport { cursor:default !important; touch-action:pan-y; }
+body.player .backgroundLayer { cursor:default !important; }
+body.player .token:not(.mine) { pointer-events:none !important; }
+body.player .token.mine { touch-action:none; }

@@ -444,23 +444,46 @@ function drawFog() {
   $("fogLayer")?.remove();
   const f = scene().fog;
   if (!f?.on) return;
-  const ops = fogDraft ? [...f.ops, fogDraft] : f.ops;
-  const rects = ops.map(o => `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" fill="${o.reveal ? "#000" : "#fff"}"/>`).join("");
+  const ops = fogDraft ? [...(f.ops || []), fogDraft] : (f.ops || []);
+  const rects = ops.map(o => {
+    const x = Math.min(Number(o.x)||0, WORLD_W), y = Math.min(Number(o.y)||0, WORLD_H);
+    const w = Math.max(0, Math.min(Number(o.w)||0, WORLD_W-x)), h = Math.max(0, Math.min(Number(o.h)||0, WORLD_H-y));
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${o.reveal ? "#000" : "#fff"}"/>`;
+  }).join("");
+  // A máscara começa totalmente opaca. Áreas reveladas e a visão do personagem
+  // ficam transparentes, sem alterar o mapa ou a posição da câmera.
+  const playerVision = document.body.classList.contains("player") && f.player
+    ? (scene().tokens || []).filter(t => t.characterId === (window.zeroMyCharacter || null) && !t.hidden)
+    : [];
+  const radius = Math.max(1, Number(f.vision) || 4) * SNAP;
+  const eyes = playerVision.map(t => {
+    if (typeof window.zeroEye === "function") return window.zeroEye(t, radius);
+    const cx = t.x + t.w/2, cy = t.y + t.h/2;
+    return `<circle cx="${cx}" cy="${cy}" r="${radius + t.w/2}" fill="#000"/>`;
+  }).join("");
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.id = "fogLayer";
   svg.setAttribute("width", WORLD_W);
   svg.setAttribute("height", WORLD_H);
-  svg.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:800";
-  svg.innerHTML = `<defs><filter id="fogBlur" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="7"/></filter>
-    <mask id="fogMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${WORLD_W}" height="${WORLD_H}"><rect width="${WORLD_W}" height="${WORLD_H}" fill="#fff"/><g filter="url(#fogBlur)">${rects}</g></mask></defs>
-    <rect width="${WORLD_W}" height="${WORLD_H}" fill="#05070b" fill-opacity="${f.player ? 1 : 0.62}" mask="url(#fogMask)"/>
-    ${fogDraft ? `<rect x="${fogDraft.x}" y="${fogDraft.y}" width="${fogDraft.w}" height="${fogDraft.h}" fill="none" stroke="${fogDraft.reveal ? "#7ee787" : "#ff7b8a"}" stroke-width="${2 / zoom}" stroke-dasharray="${6 / zoom}"/>` : ""}`;
+  svg.setAttribute("viewBox", `0 0 ${WORLD_W} ${WORLD_H}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.style.cssText = `position:absolute;left:0;top:0;width:${WORLD_W}px;height:${WORLD_H}px;pointer-events:none;z-index:800;overflow:visible`;
+  svg.innerHTML = `<defs>
+    <filter id="fogBlur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
+    <mask id="fogMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${WORLD_W}" height="${WORLD_H}">
+      <rect width="${WORLD_W}" height="${WORLD_H}" fill="#fff"/>
+      <g filter="url(#fogBlur)">${rects}${eyes}</g>
+    </mask>
+  </defs>
+  <rect width="${WORLD_W}" height="${WORLD_H}" fill="#05070b" fill-opacity="${f.player ? 1 : 0.62}" mask="url(#fogMask)"/>
+  ${fogDraft ? `<rect x="${fogDraft.x}" y="${fogDraft.y}" width="${fogDraft.w}" height="${fogDraft.h}" fill="none" stroke="${fogDraft.reveal ? "#7ee787" : "#ff7b8a"}" stroke-width="${2 / zoom}" stroke-dasharray="${6 / zoom}"/>` : ""}`;
   $("world").append(svg);
 }
 function syncFogUi() {
   const f = scene().fog;
   $("fogOn").checked = !!f.on;
   $("fogPlayer").checked = !!f.player;
+  if ($("fogVision")) $("fogVision").value = String(f.vision ?? 4);
   $("fogReveal").classList.toggle("active", fogTool === "reveal");
   $("fogCover").classList.toggle("active", fogTool === "cover");
 }
@@ -564,6 +587,7 @@ function shouldPan(event) {
   return panTool || spaceHeld || event.button === 1 || event.button === 2;
 }
 function startPan(event) {
+  if (document.body.classList.contains("player")) return;
   event.preventDefault();
   event.stopPropagation();
   const target = event.target;
@@ -588,6 +612,7 @@ function startPan(event) {
 
 // Capture phase means Space/middle/right pan works even when the pointer is over a token or map.
 $("viewport").addEventListener("pointerdown", event => {
+  if (document.body.classList.contains("player")) return;
   if (shouldPan(event)) {
     startPan(event);
     return;
@@ -632,6 +657,7 @@ function releaseTextFocus() {
 }
 
 function startBackgroundDrag(event, element) {
+  if (document.body.classList.contains("player")) { event.preventDefault(); event.stopPropagation(); return; }
   if (shouldPan(event)) return;
   if (event.target.classList.contains("resizeHandle")) return;
   event.stopPropagation();
@@ -653,6 +679,7 @@ function startBackgroundDrag(event, element) {
 }
 
 function startBackgroundResize(event, direction, element) {
+  if (document.body.classList.contains("player")) { event.preventDefault(); event.stopPropagation(); return; }
   if (shouldPan(event)) return;
   event.stopPropagation();
   const b = scene().bg;
@@ -831,6 +858,7 @@ function rotateSelected(deg) {
   token.rot = (((Number(token.rot) || 0) + deg) % 360 + 360) % 360; renderWorld(); markDirty("Objeto girado");
 }
 function nudgeSelected(dx, dy) {
+  if (document.body.classList.contains("player")) return;
   if (selected === "__background__" && scene().background) {
     const b = scene().bg; b.x += dx; b.y += dy;
     const el = $("backgroundLayer"); if (el) { el.style.left = `${b.x}px`; el.style.top = `${b.y}px`; }
@@ -1026,6 +1054,7 @@ $("exprInput").addEventListener("keydown", e => { if (e.key === "Enter") runExpr
 // Fog of war controls.
 $("fogOn").onchange = e => { scene().fog.on = e.target.checked; if (!e.target.checked && fogTool) fogTool = null; renderWorld(); syncFogUi(); markDirty("Névoa alterada"); };
 $("fogPlayer").onchange = e => { scene().fog.player = e.target.checked; renderWorld(); markDirty("Modo da névoa alterado"); };
+$("fogVision").onchange = e => { scene().fog.vision = clamp(Number(e.target.value) || 4, 0, 20); renderWorld(); markDirty("Alcance de visão alterado"); };
 $("fogReveal").onclick = () => setFogTool("reveal");
 $("fogCover").onclick = () => setFogTool("cover");
 $("fogRevealAll").onclick = () => { const f = scene().fog; f.on = true; f.ops = [{ x: 0, y: 0, w: WORLD_W, h: WORLD_H, reveal: true }]; renderWorld(); syncFogUi(); markDirty("Tudo revelado"); };
@@ -1771,12 +1800,12 @@ if (!skipTutorial) openTutorial();
     viewport.classList.add('is-panning');
   };
   viewport.addEventListener('pointerdown', e => {
-    if (e.pointerType !== 'touch' || !mq.matches) return;
+    if (document.body.classList.contains('player') || e.pointerType !== 'touch' || !mq.matches) return;
     touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if (touches.size === 2) beginPinch();
   }, true);
   window.addEventListener('pointermove', e => {
-    if (!touches.has(e.pointerId)) return;
+    if (document.body.classList.contains('player') || !touches.has(e.pointerId)) return;
     touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if (!pinch || touches.size !== 2) return;
     const [a,b] = [...touches.values()];
@@ -1788,7 +1817,7 @@ if (!skipTutorial) openTutorial();
     updateCamera();
   }, true);
   const endTouch = e => {
-    if (!touches.has(e.pointerId)) return;
+    if (document.body.classList.contains('player') || !touches.has(e.pointerId)) return;
     touches.delete(e.pointerId);
     if (touches.size < 2) { pinch = null; viewport.classList.remove('is-panning'); }
   };
