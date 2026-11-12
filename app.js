@@ -33,36 +33,34 @@ function worldPoint(event) {
   const rect = $("viewport").getBoundingClientRect();
   return { x: (event.clientX - rect.left - panX) / zoom, y: (event.clientY - rect.top - panY) / zoom };
 }
-function imgTransform(t) {
-  // rot = ajuste manual do mestre; facingRot = direção automática do deslocamento.
+function tokenTransform(t) {
+  // A direção acompanha o vetor real do deslocamento. A rotação X/Y cria a
+  // sensação de perfil/perspectiva sem tombar o sprite no plano da mesa.
   const manual = Number(t.rot) || 0;
-  const facing = Number(t.facingRot) || 0;
-  return `transform:rotate(${manual + facing}deg) scaleX(${t.flip ? -1 : 1})`;
+  const fxRaw = Number.isFinite(Number(t.facingX)) ? Number(t.facingX) : (t.facingSide === "left" ? -1 : t.facingSide === "right" ? 1 : 0);
+  const fyRaw = Number.isFinite(Number(t.facingY)) ? Number(t.facingY) : 0;
+  const fx = clamp(fxRaw, -1, 1), fy = clamp(fyRaw, -1, 1);
+  return `rotate(${manual}deg) rotateX(${-fy * 48}deg) rotateY(${fx * 58}deg) scaleX(${t.flip ? -1 : 1})`;
 }
-
-function normalizeAngle(deg) {
-  deg %= 360;
-  return deg < 0 ? deg + 360 : deg;
-}
-function shortestAngle(from, to) {
-  return ((to - from + 540) % 360) - 180;
-}
+function imgTransform(t) { return `transform:${tokenTransform(t)}`; }
 function updateTokenFacing(token, dx, dy) {
-  // Sprites são considerados voltados para cima por padrão.
-  if (Math.hypot(dx, dy) < 0.75) return;
-  const target = normalizeAngle(Math.atan2(dy, dx) * 180 / Math.PI + 90);
-  const current = normalizeAngle(Number(token.facingRot) || 0);
-  // Aproxima gradualmente para evitar uma virada brusca ao arrastar.
-  const step = shortestAngle(current, target) * 0.22;
-  token.facingRot = normalizeAngle(current + step);
+  const length = Math.hypot(dx, dy);
+  if (length < 0.75) return;
+  token.facingX = clamp(dx / length, -1, 1);
+  token.facingY = clamp(dy / length, -1, 1);
+  if (Math.abs(dx) > Math.abs(dy) * 0.22) token.facingSide = dx < 0 ? "left" : "right";
 }
 
 function objectIconSvg(icon = "📦") {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="24" fill="#1b2432"/><text x="80" y="108" text-anchor="middle" font-size="82">${icon}</text></svg>`)}`;
 }
 const TORCH_ASSET_ID = "builtin-torch";
+function torchIconSvg() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="wood" x2="1" y2="1"><stop stop-color="#c58a45"/><stop offset=".48" stop-color="#75401f"/><stop offset="1" stop-color="#3d2418"/></linearGradient><radialGradient id="glow"><stop stop-color="#fff3a0" stop-opacity=".9"/><stop offset="1" stop-color="#ff8b20" stop-opacity="0"/></radialGradient><linearGradient id="fire" x2="0" y2="1"><stop stop-color="#fff9b0"/><stop offset=".35" stop-color="#ffd34e"/><stop offset=".72" stop-color="#ff7b22"/><stop offset="1" stop-color="#c92d18"/></linearGradient></defs><circle cx="83" cy="48" r="49" fill="url(#glow)"/><path d="M74 63 L93 72 L65 151 Q61 157 55 153 L48 149Z" fill="url(#wood)" stroke="#3b2116" stroke-width="4"/><path d="M69 78 L87 85 L82 98 L63 91Z" fill="#d5a05d" stroke="#633719" stroke-width="3"/><path d="M57 67 C38 47 58 24 72 8 C73 29 91 30 88 51 C101 38 104 26 105 18 C127 46 116 72 98 82 C81 92 62 83 57 67Z" fill="url(#fire)" stroke="#e65b1d" stroke-width="3"/><path d="M76 70 C67 56 80 42 88 32 C88 47 101 54 93 69 C89 78 81 79 76 70Z" fill="#fff2a0"/><path d="M45 146 L65 153" stroke="#e1b47a" stroke-width="4" stroke-linecap="round"/></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
 function builtInTorch() {
-  return { id: TORCH_ASSET_ID, builtin: true, name: "Tocha", category: "Luz", description: "Uma tocha acesa que ilumina a área.", icon: "🔥", src: objectIconSvg("🔥"), props: [{ key: "Luz", value: "Ilumina uma área" }, { key: "Duração", value: "1 hora" }, { key: "Peso", value: "0,5 kg" }] };
+  return { id: TORCH_ASSET_ID, builtin: true, name: "Tocha", category: "Luz", description: "Uma tocha de madeira acesa. Pode ser equipada na mão e ilumina a área ao redor.", icon: "🔥", src: torchIconSvg(), kind: "equip", lightRadius: 440, props: [{ key: "Luz", value: "Ilumina uma área" }, { key: "Duração", value: "1 hora" }, { key: "Peso", value: "0,5 kg" }] };
 }
 function ensureBuiltInAssets(assets) {
   const list = Array.isArray(assets) ? assets : [];
@@ -79,6 +77,8 @@ function blankState() {
     name: "Minha Campanha",
     active: "scene-1",
     assets: [builtInTorch()],
+    items: [{ ...builtInTorch() }],
+    masterBag: [],
     characters: [],
     bestiary: seedBestiary(),
     musicTracks: [],
@@ -151,6 +151,8 @@ function normalizeState(loaded) {
   result.version = 9;
   result.assets = ensureBuiltInAssets(Array.isArray(loaded.assets) ? loaded.assets : []);
   result.characters = Array.isArray(loaded.characters) ? loaded.characters : [];
+  result.items = Array.isArray(loaded.items) ? loaded.items : [];
+  if (!result.items.some(i => i && i.id === TORCH_ASSET_ID)) result.items.unshift({ ...builtInTorch() });
   result.characters.forEach(c => {
     c.level = clamp(Math.floor(Number(c.level) || 1), 1, 99);
     c.focusLevel = clamp(Math.floor(Number(c.focusLevel) || 1), 1, 99);
@@ -440,50 +442,51 @@ function renderWorld() {
   updateCamera();
 }
 
+let fogRenderKey = "";
 function drawFog() {
-  $("fogLayer")?.remove();
+  const old = $("fogLayer");
   const f = scene().fog;
-  if (!f?.on) return;
-  const ops = fogDraft ? [...(f.ops || []), fogDraft] : (f.ops || []);
-  const rects = ops.map(o => {
-    const x = Math.min(Number(o.x)||0, WORLD_W), y = Math.min(Number(o.y)||0, WORLD_H);
-    const w = Math.max(0, Math.min(Number(o.w)||0, WORLD_W-x)), h = Math.max(0, Math.min(Number(o.h)||0, WORLD_H-y));
-    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${o.reveal ? "#000" : "#fff"}"/>`;
-  }).join("");
-  // A máscara começa totalmente opaca. Áreas reveladas e a visão do personagem
-  // ficam transparentes, sem alterar o mapa ou a posição da câmera.
-  const playerVision = document.body.classList.contains("player") && f.player
-    ? (scene().tokens || []).filter(t => t.characterId === (window.zeroMyCharacter || null) && !t.hidden)
-    : [];
-  const radius = Math.max(1, Number(f.vision) || 4) * SNAP;
-  const eyes = playerVision.map(t => {
-    if (typeof window.zeroEye === "function") return window.zeroEye(t, radius);
-    const cx = t.x + t.w/2, cy = t.y + t.h/2;
-    return `<circle cx="${cx}" cy="${cy}" r="${radius + t.w/2}" fill="#000"/>`;
-  }).join("");
+  if (!f?.on) { old?.remove(); fogRenderKey = ""; window.zeroDrawLights?.(); return; }
+  const ops = fogDraft ? [...f.ops, fogDraft] : f.ops;
+  const isPlayer = document.body.classList.contains("player");
+  const own = isPlayer ? scene().tokens.find(t => t.characterId === window.zeroPlayerCharacterId) : null;
+  const lightTokens = scene().tokens.map(t => ({ t, held: t.held || window.zeroHeld?.(t) || [] })).filter(x => x.held.some(h => Number(h.lightRadius) > 0));
+  const dynamicKey = [own ? `${Math.round(own.x/4)},${Math.round(own.y/4)},${own.w},${own.h}` : "", JSON.stringify(f.explored || []), lightTokens.map(({t,held}) => `${t.id}:${Math.round(t.x/4)},${Math.round(t.y/4)}:${held.map(h => `${h.itemId || ""}:${h.hand}:${h.lightRadius || 0}`).join("|")}`).join(";")].join(";");
+  const key = `${scene().id}|${f.player}|${JSON.stringify(ops)}|${window.zeroWallRevision || 0}|${(scene().walls || []).length}|${dynamicKey}|${zoom}`;
+  if (old?.isConnected && old.parentNode === $("world") && key === fogRenderKey) return;
+  old?.remove();
+  const rects = ops.map(o => `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" fill="${o.reveal ? "#000" : "#fff"}"/>`).join("");
+  let dynamicReveal = "";
+  if (isPlayer && own && window.zeroEye) {
+    // A visão normal é móvel; a tocha cria uma segunda área de luz maior.
+    dynamicReveal += window.zeroEye(own, Number(own.visionRadius) || 300);
+    (f.explored || []).forEach(point => { if (Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.r)) dynamicReveal += window.zeroEye({ x: point.x - 4, y: point.y - 4, w: 8, h: 8 }, point.r); });
+    lightTokens.forEach(({t, held}) => held.forEach(h => {
+      const radius = Number(h.lightRadius) || 0;
+      if (radius > 0) {
+        const handX = t.x + (h.hand === "L" ? t.w * .22 : t.w * .78);
+        const handY = t.y + t.h * .38;
+        dynamicReveal += window.zeroEye({ x: handX - 4, y: handY - 4, w: 8, h: 8 }, radius);
+      }
+    }));
+  }
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.id = "fogLayer";
-  svg.setAttribute("width", WORLD_W);
-  svg.setAttribute("height", WORLD_H);
-  svg.setAttribute("viewBox", `0 0 ${WORLD_W} ${WORLD_H}`);
-  svg.setAttribute("preserveAspectRatio", "none");
-  svg.style.cssText = `position:absolute;left:0;top:0;width:${WORLD_W}px;height:${WORLD_H}px;pointer-events:none;z-index:800;overflow:visible`;
-  svg.innerHTML = `<defs>
-    <filter id="fogBlur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
-    <mask id="fogMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${WORLD_W}" height="${WORLD_H}">
-      <rect width="${WORLD_W}" height="${WORLD_H}" fill="#fff"/>
-      <g filter="url(#fogBlur)">${rects}${eyes}</g>
-    </mask>
-  </defs>
-  <rect width="${WORLD_W}" height="${WORLD_H}" fill="#05070b" fill-opacity="${f.player ? 1 : 0.62}" mask="url(#fogMask)"/>
-  ${fogDraft ? `<rect x="${fogDraft.x}" y="${fogDraft.y}" width="${fogDraft.w}" height="${fogDraft.h}" fill="none" stroke="${fogDraft.reveal ? "#7ee787" : "#ff7b8a"}" stroke-width="${2 / zoom}" stroke-dasharray="${6 / zoom}"/>` : ""}`;
-  $("world").append(svg);
+  svg.setAttribute("width", WORLD_W); svg.setAttribute("height", WORLD_H);
+  svg.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:800";
+  // O preto na máscara abre a visão; o branco posterior permite ao mestre
+  // cobrir novamente uma área mesmo que ela esteja dentro do raio de visão.
+  svg.innerHTML = `<defs><filter id="fogBlur" x="-8%" y="-8%" width="116%" height="116%"><feGaussianBlur stdDeviation="7"/></filter>
+    <mask id="fogMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${WORLD_W}" height="${WORLD_H}"><rect width="${WORLD_W}" height="${WORLD_H}" fill="#fff"/><g filter="url(#fogBlur)">${dynamicReveal}</g>${rects}</mask></defs>
+    <rect width="${WORLD_W}" height="${WORLD_H}" fill="#05070b" fill-opacity="${f.player ? 1 : 0.62}" mask="url(#fogMask)"/>
+    ${fogDraft ? `<rect x="${fogDraft.x}" y="${fogDraft.y}" width="${fogDraft.w}" height="${fogDraft.h}" fill="none" stroke="${fogDraft.reveal ? "#7ee787" : "#ff7b8a"}" stroke-width="${2 / zoom}" stroke-dasharray="${6 / zoom}"/>` : ""}`;
+  $("world").append(svg); fogRenderKey = key; window.zeroDrawLights?.();
 }
+
 function syncFogUi() {
   const f = scene().fog;
   $("fogOn").checked = !!f.on;
   $("fogPlayer").checked = !!f.player;
-  if ($("fogVision")) $("fogVision").value = String(f.vision ?? 4);
   $("fogReveal").classList.toggle("active", fogTool === "reveal");
   $("fogCover").classList.toggle("active", fogTool === "cover");
 }
@@ -587,7 +590,6 @@ function shouldPan(event) {
   return panTool || spaceHeld || event.button === 1 || event.button === 2;
 }
 function startPan(event) {
-  if (document.body.classList.contains("player")) return;
   event.preventDefault();
   event.stopPropagation();
   const target = event.target;
@@ -612,7 +614,12 @@ function startPan(event) {
 
 // Capture phase means Space/middle/right pan works even when the pointer is over a token or map.
 $("viewport").addEventListener("pointerdown", event => {
-  if (document.body.classList.contains("player")) return;
+  // A mesa do jogador é somente leitura: apenas o token próprio pode receber gesto.
+  // Bloqueia também cliques no mapa/cenário que antes iniciavam pan ou seleção.
+  if (document.body.classList.contains("player")) {
+    const ownToken = event.target.closest(".token.mine");
+    if (!ownToken || event.button !== 0) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+  }
   if (shouldPan(event)) {
     startPan(event);
     return;
@@ -633,6 +640,19 @@ $("viewport").addEventListener("pointerdown", event => {
 }, true);
 
 $("viewport").addEventListener("contextmenu", event => event.preventDefault());
+// O modo jogador não possui ferramentas de câmera. Bloqueio em capture para
+// impedir que handlers de zoom/pan ou gestos móveis sejam executados antes.
+window.addEventListener("wheel", event => {
+  if (document.body.classList.contains("player")) { event.preventDefault(); event.stopImmediatePropagation(); }
+}, { capture: true, passive: false });
+window.addEventListener("keydown", event => {
+  if (document.body.classList.contains("player") && (event.code === "Space" || event.key === "+" || event.key === "-")) {
+    event.preventDefault(); event.stopImmediatePropagation(); spaceHeld = false;
+  }
+}, true);
+window.addEventListener("touchmove", event => {
+  if (document.body.classList.contains("player") && event.target.closest?.("#viewport")) event.preventDefault();
+}, { capture: true, passive: false });
 
 // Arrasto robusto: ouve a janela inteira (não o elemento), então não perde o gesto
 // mesmo que a mesa seja redesenhada ou o mouse saia da área.
@@ -657,7 +677,6 @@ function releaseTextFocus() {
 }
 
 function startBackgroundDrag(event, element) {
-  if (document.body.classList.contains("player")) { event.preventDefault(); event.stopPropagation(); return; }
   if (shouldPan(event)) return;
   if (event.target.classList.contains("resizeHandle")) return;
   event.stopPropagation();
@@ -679,7 +698,6 @@ function startBackgroundDrag(event, element) {
 }
 
 function startBackgroundResize(event, direction, element) {
-  if (document.body.classList.contains("player")) { event.preventDefault(); event.stopPropagation(); return; }
   if (shouldPan(event)) return;
   event.stopPropagation();
   const b = scene().bg;
@@ -717,7 +735,7 @@ function startTokenDrag(event, token, element) {
     element.style.left = `${token.x}px`;
     element.style.top = `${token.y}px`;
     const img = element.querySelector("img");
-    if (img) img.style.transform = `rotate(${(Number(token.rot)||0) + (Number(token.facingRot)||0)}deg) scaleX(${token.flip ? -1 : 1})`;
+    if (img) img.style.transform = tokenTransform(token);
     syncPositionInputs(token);
   }, () => { if (moved) markDirty("Objeto movido"); });
 }
@@ -802,7 +820,7 @@ function renderInspector() {
     $("flipToken").onclick = () => flipSelected();
     $("rotLeft").onclick = () => rotateSelected(-15);
     $("rotRight").onclick = () => rotateSelected(15);
-    $("resetFacing").onclick = () => { token.facingRot = 0; markDirty("Direção reiniciada"); renderScene(); renderInspector(); };
+    $("resetFacing").onclick = () => { token.facingSide = "right"; token.facingRot = 0; markDirty("Direção reiniciada"); renderScene(); renderInspector(); };
     box.querySelectorAll("[data-vital]").forEach(btn => btn.onclick = () => adjustVital(token, btn.dataset.vital, Number(btn.dataset.delta)));
     $("inspectInit").onchange = e => { token.init = e.target.value === "" ? undefined : Number(e.target.value); renderWorld(); markDirty("Iniciativa alterada"); };
     $("rollInit").onclick = () => { rollTokenInitiative(token); renderInspector(); renderWorld(); markDirty("Iniciativa rolada"); };
@@ -858,7 +876,6 @@ function rotateSelected(deg) {
   token.rot = (((Number(token.rot) || 0) + deg) % 360 + 360) % 360; renderWorld(); markDirty("Objeto girado");
 }
 function nudgeSelected(dx, dy) {
-  if (document.body.classList.contains("player")) return;
   if (selected === "__background__" && scene().background) {
     const b = scene().bg; b.x += dx; b.y += dy;
     const el = $("backgroundLayer"); if (el) { el.style.left = `${b.x}px`; el.style.top = `${b.y}px`; }
@@ -905,6 +922,7 @@ $("panMode").onclick = () => {
 window.addEventListener("keydown", event => {
   const tag = event.target?.tagName;
   const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(tag) || event.target?.isContentEditable;
+  if (event.code === "Space" && document.body.classList.contains("player")) { event.preventDefault(); return; }
   if (event.code === "Space" && !typing) { spaceHeld = true; $("viewport").classList.add("pan-mode"); event.preventDefault(); }
   if (typing && event.key !== "Escape") return;
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
@@ -949,6 +967,7 @@ window.addEventListener("blur", () => { spaceHeld = false; updateCamera(); });
 $("zoomIn").onclick = () => zoomAt(1.15);
 $("zoomOut").onclick = () => zoomAt(1 / 1.15);
 function zoomAt(factor) {
+  if (document.body.classList.contains("player")) return;
   const rect = $("viewport").getBoundingClientRect();
   const mx = rect.width / 2, my = rect.height / 2;
   const old = zoom;
@@ -958,6 +977,7 @@ function zoomAt(factor) {
   updateCamera();
 }
 $("viewport").addEventListener("wheel", event => {
+  if (document.body.classList.contains("player")) { event.preventDefault(); event.stopImmediatePropagation(); return; }
   event.preventDefault();
   const rect = $("viewport").getBoundingClientRect();
   const mx = event.clientX - rect.left, my = event.clientY - rect.top;
@@ -1054,7 +1074,6 @@ $("exprInput").addEventListener("keydown", e => { if (e.key === "Enter") runExpr
 // Fog of war controls.
 $("fogOn").onchange = e => { scene().fog.on = e.target.checked; if (!e.target.checked && fogTool) fogTool = null; renderWorld(); syncFogUi(); markDirty("Névoa alterada"); };
 $("fogPlayer").onchange = e => { scene().fog.player = e.target.checked; renderWorld(); markDirty("Modo da névoa alterado"); };
-$("fogVision").onchange = e => { scene().fog.vision = clamp(Number(e.target.value) || 4, 0, 20); renderWorld(); markDirty("Alcance de visão alterado"); };
 $("fogReveal").onclick = () => setFogTool("reveal");
 $("fogCover").onclick = () => setFogTool("cover");
 $("fogRevealAll").onclick = () => { const f = scene().fog; f.on = true; f.ops = [{ x: 0, y: 0, w: WORLD_W, h: WORLD_H, reveal: true }]; renderWorld(); syncFogUi(); markDirty("Tudo revelado"); };
@@ -1800,12 +1819,13 @@ if (!skipTutorial) openTutorial();
     viewport.classList.add('is-panning');
   };
   viewport.addEventListener('pointerdown', e => {
-    if (document.body.classList.contains('player') || e.pointerType !== 'touch' || !mq.matches) return;
+    if (document.body.classList.contains("player")) return;
+    if (e.pointerType !== 'touch' || !mq.matches) return;
     touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if (touches.size === 2) beginPinch();
   }, true);
   window.addEventListener('pointermove', e => {
-    if (document.body.classList.contains('player') || !touches.has(e.pointerId)) return;
+    if (!touches.has(e.pointerId)) return;
     touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if (!pinch || touches.size !== 2) return;
     const [a,b] = [...touches.values()];
@@ -1817,7 +1837,7 @@ if (!skipTutorial) openTutorial();
     updateCamera();
   }, true);
   const endTouch = e => {
-    if (document.body.classList.contains('player') || !touches.has(e.pointerId)) return;
+    if (!touches.has(e.pointerId)) return;
     touches.delete(e.pointerId);
     if (touches.size < 2) { pinch = null; viewport.classList.remove('is-panning'); }
   };

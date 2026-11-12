@@ -41,17 +41,48 @@ function dmMode() {
   };
   const sendRoster = p => p.conn.send({ t: "roster", chars: state.characters.map(x => ({ id: x.id, name: x.name, taken: takenBy(x.id, p) })) });
   const lite = () => state.characters.map(c => ({ id: c.id, name: c.name, life: c.life, maxLife: c.maxLife, fatigue: c.fatigue, fatigueMax: c.fatigueMax, conds: c.conds || [] }));
-  function view() {
+  function view(charId) {
     const s = scene();
     const tokens = s.tokens.filter(t => !t.hidden && (t.characterId || !(window.zeroConds?.(t) || []).includes("unseen"))).map(t => { const c = { ...t, held: window.zeroHeld?.(t) }; if (!t.characterId) { if (!t.showHp) ["life", "maxLife", "fatigue", "fatigueMax"].forEach(k => delete c[k]); delete c.creatureId; } return c; });
-    return { id: s.id, name: s.name, background: s.background, bg: s.bg, tokens, fog: { ...s.fog, player: true }, turn: s.turn, walls: s.walls, items: window.zeroItemsView?.() };
+    return { id: s.id, name: s.name, background: s.background, bg: s.bg, tokens, fog: { ...s.fog, player: true, explored: (s.fog?.explored?.[charId] || []).slice() }, turn: s.turn, walls: s.walls, items: window.zeroItemsView?.() };
+  }
+  function recordExploration(ch, token) {
+    const fog = scene().fog; if (!fog?.on || !ch || !token) return [];
+    fog.explored = fog.explored || {}; const list = fog.explored[ch.id] = fog.explored[ch.id] || [];
+    const sources = [{ x: token.x + token.w / 2, y: token.y + token.h / 2, r: Number(token.visionRadius) || 300 }];
+    (window.zeroHeld?.(token) || []).forEach(h => { if (Number(h.lightRadius) > 0) sources.push({ x: token.x + (h.hand === "L" ? token.w * .22 : token.w * .78), y: token.y + token.h * .38, r: Number(h.lightRadius) }); });
+    const added = [];
+    sources.forEach(src => {
+      const last = [...list].reverse().find(x => Number(x.r) === src.r);
+      if (last && Math.hypot(src.x - last.x, src.y - last.y) < 48) return;
+      const point = { x: Math.round(src.x), y: Math.round(src.y), r: src.r };
+      list.push(point); added.push(point);
+    });
+    if (list.length > 320) list.splice(0, list.length - 320);
+    return added;
+  }
+  function broadcastMove(t) {
+    if (!t) return;
+    const packet = { t: "move", tokenId: t.id, x: t.x, y: t.y, facingSide: t.facingSide || "center", facingX: Number(t.facingX) || 0, facingY: Number(t.facingY) || 0, rot: Number(t.rot) || 0, flip: !!t.flip };
+    conns.forEach(p => { if (p.conn.open && p.charId) p.conn.send(packet); });
+  }
+  function updateTokenOnMaster(t) {
+    const el = [...document.querySelectorAll(".token")].find(x => x.dataset.id === t.id);
+    if (el) {
+      el.classList.add("remoteMoving"); clearTimeout(el._ezMoveTransitionTimer); el._ezMoveTransitionTimer = setTimeout(() => el.classList.remove("remoteMoving"), 130);
+      el.style.left = t.x + "px"; el.style.top = t.y + "px";
+      const img = el.querySelector("img");
+      if (img) img.style.transform = tokenTransform(t);
+    }
+    drawFog();
   }
   function syncAll() {
     if (!conns.size) return;
-    const { obj, ids } = packBig(view()), chars = lite();
+    const chars = lite();
     conns.forEach(p => {
       if (!p.conn.open) return;
       if (!p.charId) return sendRoster(p);
+      const { obj, ids } = packBig(view(p.charId));
       ids.forEach(i => { if (!p.sent.has(i)) { p.sent.add(i); p.conn.send({ t: "asset", id: i, data: bigList[i] }); } });
       const ch = state.characters.find(x => x.id === p.charId), sheet = {}; if (ch) SHEET.forEach(k => sheet[k] = ch[k]);
       p.conn.send({ t: "state", scene: obj, chars, sheet: ch ? sheet : null, you: p.charId, bestiary: window.zeroBest?.(p.charId) || [], clues: window.zeroCluesFor?.(p.charId) || [], urgency: window.zeroPublicUrgency?.() || null });
@@ -82,17 +113,36 @@ function dmMode() {
       renderWorld(); renderInspector(); markDirty("Jogador atualizou a ficha");
     } else if (m.t === "move") {
       const t = scene().tokens.find(x => x.characterId === ch.id); if (!t || t.locked || !Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
-      const ox = t.x, oy = t.y; t.x = clamp(m.x, 0, WORLD_W - t.w); t.y = clamp(m.y, 0, WORLD_H - t.h); p.acc = (Date.now() - (p.accT || 0) < 3000 ? p.acc : 0) + Math.hypot(t.x - ox, t.y - oy) / SNAP; p.accT = Date.now(); logAction(`${ch.name} andou ${Math.round(p.acc)} quadrados`, "movimento", "mv" + ch.id); renderWorld(); markDirty("Jogador moveu o token");
-    } else if (window.zeroBagMsg?.(ch, m)) { /* itens */ } else if (m.t === "roll") {
+      const ox = t.x, oy = t.y; t.x = clamp(m.x, 0, WORLD_W - t.w); t.y = clamp(m.y, 0, WORLD_H - t.h);
+      updateTokenFacing(t, t.x - ox, t.y - oy);
+      const explored = recordExploration(ch, t); if (explored.length && p.conn.open) p.conn.send({ t: "explored", points: explored });
+      p.acc = (Date.now() - (p.accT || 0) < 3000 ? p.acc : 0) + Math.hypot(t.x - ox, t.y - oy) / SNAP; p.accT = Date.now();
+      updateTokenOnMaster(t); broadcastMove(t); logAction(`${ch.name} andou ${Math.round(p.acc)} quadrados`, "movimento", "mv" + ch.id); _md("Jogador moveu o token");
+    } else if (window.zeroBagMsg?.(ch, m)) { const t = scene().tokens.find(x => x.characterId === ch.id); const explored = t ? recordExploration(ch, t) : []; if (explored.length && p.conn.open) p.conn.send({ t: "explored", points: explored }); } else if (m.t === "roll") {
       const s = clamp(Math.round(Number(m.sides)) || 20, 2, 100), r = 1 + Math.floor(Math.random() * s);
       showRoll(r, `${ch.name} rolou d${s}`, `${ch.name}: d${s} = ${r}`, s === 20 && r === 20 ? "crit" : s === 20 && r === 1 ? "fail" : "");
     }
   }
   const _sr = showRoll; showRoll = function (a, b, c, d) { _sr(a, b, c, d); conns.forEach(p => p.conn.open && p.conn.send({ t: "log", text: c })); };
-  const _md = markDirty; markDirty = function (m) { _md(m); sched(); };
+  const _md = markDirty; markDirty = function (m) { _md(m); if (m !== "Jogador moveu o token") sched(); };
   const _r = render; render = function () { _r(); sched(); };
-  addEventListener("pointerdown", () => down = true); addEventListener("pointerup", () => down = false);
-  addEventListener("pointermove", () => { if (down) sched(120); });
+  let lastMoveBroadcast = 0, moveScanQueued = false;
+  const sentPositions = new Map();
+  function rememberPositions() { sentPositions.clear(); scene().tokens.forEach(t => sentPositions.set(t.id, `${t.x.toFixed(1)}:${t.y.toFixed(1)}:${t.facingX || 0}:${t.facingY || 0}`)); }
+  function broadcastChangedPositions() {
+    moveScanQueued = false; if (!down || !conns.size) return;
+    const now = performance.now(); if (now - lastMoveBroadcast < 36) return;
+    let changed = false;
+    scene().tokens.forEach(t => {
+      const key = `${t.x.toFixed(1)}:${t.y.toFixed(1)}:${t.facingX || 0}:${t.facingY || 0}`;
+      if (sentPositions.get(t.id) !== key) { sentPositions.set(t.id, key); broadcastMove(t); changed = true; }
+    });
+    if (changed) lastMoveBroadcast = now;
+  }
+  addEventListener("pointerdown", () => { down = true; rememberPositions(); });
+  addEventListener("pointerup", () => { down = false; sched(90); });
+  addEventListener("pointercancel", () => { down = false; sched(90); });
+  addEventListener("pointermove", () => { if (down && !moveScanQueued) { moveScanQueued = true; setTimeout(broadcastChangedPositions, 0); } });
   const _ri = renderInspector;
   renderInspector = function () {
     _ri(); const t = selectedToken(); if (!t) return;
@@ -107,7 +157,7 @@ function dmMode() {
 // ================= JOGADOR =================
 function playerMode() {
   document.body.classList.add("player", "online"); document.title = "Espaço Zero — Jogador";
-  const assets = new Map(); let items = {}, bestiary = [], clues = [], urgency = null, my = null, sheet = null, conn = null, peer = null, got = false, dragging = false, pending = null, lastScene = null, retryT = 0, lastMove = 0, noteT = {};
+  const assets = new Map(); let items = {}, bestiary = [], clues = [], urgency = null, my = null, sheet = null, conn = null, peer = null, got = false, dragging = false, pending = null, lastScene = null, retryT = 0, lastMove = 0, noteT = {}, fogTimer = 0;
   const pid = (() => { try { let v = localStorage.getItem("ez:pid"); if (!v) localStorage.setItem("ez:pid", v = Math.random().toString(36).slice(2) + Date.now().toString(36)); return v; } catch { return Math.random().toString(36).slice(2); } })();
   const banner = mk("div", "netBanner", "Conectando à sala…"), pick = mk("div", "pickModal", "", "pickModal hidden"), me = mk("div", "myPanel", "", "myPanel hidden");
   const say = t => { banner.textContent = t; banner.classList.toggle("hidden", !t); };
@@ -130,23 +180,73 @@ function playerMode() {
       pick.querySelectorAll("button").forEach(b => b.onclick = () => { try { localStorage.setItem("ez:" + ROOM, b.dataset.id); } catch {} send({ t: "claim", charId: b.dataset.id }); });
     } else if (m.t === "asset" && Number.isInteger(m.id) && m.id >= 0 && typeof m.data === "string" && m.data.length <= 15000000) assets.set(m.id, m.data);
     else if (m.t === "state") { if (dragging) pending = m; else apply(m); }
+    else if (m.t === "explored" && Array.isArray(m.points) && got) {
+      const fog = scene().fog; fog.explored = Array.isArray(fog.explored) ? fog.explored : [];
+      m.points.slice(0, 20).forEach(q => { if (Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.r)) fog.explored.push({ x: q.x, y: q.y, r: clamp(q.r, 40, 1200) }); });
+      if (fog.explored.length > 320) fog.explored.splice(0, fog.explored.length - 320);
+      drawFog();
+    }
+    else if (m.t === "move") applyMove(m);
     else if (m.t === "log") { const l = $("mpLog"); if (l) { l.innerHTML = `<div>${escapeHtml(m.text)}</div>` + l.innerHTML; l.childNodes[6]?.remove(); } }
   }
   function apply(m) {
-    const sc = unpackBig(m.scene, assets); items = sc.items || {}; bestiary = Array.isArray(m.bestiary) ? m.bestiary : []; clues = Array.isArray(m.clues) ? m.clues : []; urgency = m.urgency || null; my = m.you; sheet = m.sheet; pick.classList.add("hidden");
+    const sc = unpackBig(m.scene, assets); items = sc.items || {}; bestiary = Array.isArray(m.bestiary) ? m.bestiary : []; clues = Array.isArray(m.clues) ? m.clues : []; urgency = m.urgency || null; my = m.you; window.zeroPlayerCharacterId = my; sheet = m.sheet; pick.classList.add("hidden");
     const fresh = !got || lastScene !== sc.id; got = true; lastScene = sc.id;
     state = normalizeState({ scenes: [sc], active: sc.id, characters: m.chars, name: "Mesa" }); selected = null; render();
     const t = sc.tokens.find(x => x.characterId === my); if (t) document.querySelector(`[data-id="${t.id}"]`)?.classList.add("mine"); window.zeroFx?.();
     drawSheet(); if (fresh) { if (t) { const b = $("viewport").getBoundingClientRect(); panX = b.width / 2 - (t.x + t.w / 2) * zoom; panY = b.height / 2 - (t.y + t.h / 2) * zoom; updateCamera(); } else centerView(); }
   }
+  const moveAnimations = new Map();
+  function applyMove(m) {
+    if (!got || !m || typeof m.tokenId !== "string" || !Number.isFinite(m.x) || !Number.isFinite(m.y)) return;
+    const t = scene().tokens.find(x => x.id === m.tokenId); if (!t) return;
+    if (dragging && t.characterId === my) return;
+    const el = [...document.querySelectorAll(".token")].find(x => x.dataset.id === t.id);
+    if (!el) { t.x = clamp(m.x, 0, WORLD_W - t.w); t.y = clamp(m.y, 0, WORLD_H - t.h); return; }
+    const active = moveAnimations.get(t.id);
+    const fromX = active ? active.x : parseFloat(el.style.left) || t.x;
+    const fromY = active ? active.y : parseFloat(el.style.top) || t.y;
+    const toX = clamp(m.x, 0, WORLD_W - t.w), toY = clamp(m.y, 0, WORLD_H - t.h);
+    t.x = toX; t.y = toY;
+    if (m.facingSide === "left" || m.facingSide === "right") t.facingSide = m.facingSide;
+    if (Number.isFinite(m.facingX)) t.facingX = m.facingX;
+    if (Number.isFinite(m.facingY)) t.facingY = m.facingY;
+    const img = el.querySelector("img"); if (img) img.style.transform = tokenTransform(t);
+    const started = performance.now(), duration = 68;
+    const anim = { x: fromX, y: fromY, raf: 0 };
+    const frame = now => {
+      const q = Math.min(1, (now - started) / duration), eased = q * q * (3 - 2 * q);
+      anim.x = fromX + (toX - fromX) * eased; anim.y = fromY + (toY - fromY) * eased;
+      el.style.left = anim.x + "px"; el.style.top = anim.y + "px";
+      if (q < 1) anim.raf = requestAnimationFrame(frame);
+      else { anim.x = toX; anim.y = toY; moveAnimations.delete(t.id); }
+    };
+    const previous = moveAnimations.get(t.id); if (previous?.raf) cancelAnimationFrame(previous.raf);
+    moveAnimations.set(t.id, anim); anim.raf = requestAnimationFrame(frame);
+    if (!fogTimer) fogTimer = setTimeout(() => { fogTimer = 0; drawFog(); }, 65);
+  }
   startTokenDrag = function (ev, token, el) {
-    if (token.characterId !== my || token.locked) return;
+    if (token.characterId !== my || token.locked || ev.button !== 0) return;
     ev.preventDefault(); ev.stopPropagation(); dragging = true; const p0 = worldPoint(ev), x0 = token.x, y0 = token.y;
-    const push = () => send({ t: "move", x: token.x, y: token.y });
-    const mv = e => { const p = worldPoint(e); token.x = x0 + p.x - p0.x; token.y = y0 + p.y - p0.y; clampToken(token); el.style.left = token.x + "px"; el.style.top = token.y + "px"; if (Date.now() - lastMove > 80) { lastMove = Date.now(); push(); } };
-    const up = () => { ["pointermove", "pointerup", "pointercancel"].forEach((n, i) => removeEventListener(n, i ? up : mv)); dragging = false; push(); if (pending) { apply(pending); pending = null; } };
+    try { el.setPointerCapture(ev.pointerId); } catch {}
+    const push = () => send({ t: "move", x: token.x, y: token.y, facingSide: token.facingSide || "right", facingX: token.facingX || 0, facingY: token.facingY || 0 });
+    const mv = e => {
+      if (e.pointerId !== ev.pointerId) return;
+      const p = worldPoint(e), oldX = token.x, oldY = token.y;
+      token.x = x0 + p.x - p0.x; token.y = y0 + p.y - p0.y; clampToken(token);
+      updateTokenFacing(token, token.x - oldX, token.y - oldY);
+      el.style.left = token.x + "px"; el.style.top = token.y + "px";
+      const img = el.querySelector("img"); if (img) img.style.transform = tokenTransform(token);
+      if (Date.now() - lastMove > 38) { lastMove = Date.now(); push(); if (!fogTimer) fogTimer = setTimeout(() => { fogTimer = 0; drawFog(); }, 55); }
+    };
+    const up = e => {
+      if (e?.pointerId !== undefined && e.pointerId !== ev.pointerId) return;
+      ["pointermove", "pointerup", "pointercancel"].forEach((n, i) => removeEventListener(n, i ? up : mv));
+      dragging = false; push(); if (pending) { apply(pending); pending = null; }
+    };
     addEventListener("pointermove", mv); addEventListener("pointerup", up); addEventListener("pointercancel", up);
   };
+
   openCharacter = openCreature = () => {};
   function drawSheet() {
     if (!sheet) return; me.classList.remove("hidden");

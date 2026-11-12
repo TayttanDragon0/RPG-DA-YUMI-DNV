@@ -99,15 +99,16 @@ drawFog = function () {
   const ops = fogDraft ? [...f.ops, fogDraft] : f.ops, solid = P || f.player;
   const rects = ops.map(o => `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" fill="${o.reveal ? "#000" : "#fff"}"/>`).join("");
   const R = (f.vision ?? 4) * SNAP;
-  const eyes = R > 0 ? scene().tokens.filter(t => t.characterId && !isDead(t)).map(t => window.zeroEye ? zeroEye(t, R) : `<circle cx="${t.x + t.w / 2}" cy="${t.y + t.h / 2}" r="${R + t.w / 2}" fill="url(#fogEye)"/>`).join("") : "";
+  const ownId = window.zeroPlayerCharacterId || null;
+  const eyes = R > 0 ? scene().tokens.filter(t => t.characterId && !isDead(t) && (!ownId || t.characterId === ownId)).map(t => window.zeroEye ? zeroEye(t, R) : `<circle cx="${t.x + t.w / 2}" cy="${t.y + t.h / 2}" r="${R + t.w / 2}" fill="url(#fogEye)"/>`).join("") : "";
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.id = "fogLayer"; svg.setAttribute("width", WORLD_W); svg.setAttribute("height", WORLD_H);
   svg.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:800";
   svg.innerHTML = `<defs><filter id="fogBlur" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="9"/></filter>
     <radialGradient id="fogEye"><stop offset="0" stop-color="#000"/><stop offset=".6" stop-color="#000"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
-    ${cloudLayer("fogA", cloudTile("a", 11, "70,76,92", .9, 12, 120, 1536), 1536, "0 0", "1536 0", 170)}${cloudLayer("fogB", cloudTile("b", 29, "125,131,146", .6, 14, 90, 1024), 1024, "1024 0", "0 0", 115)}${cloudLayer("fogC", cloudTile("c", 47, "190,196,208", .32, 12, 70, 768), 768, "0 0", "768 768", 80)}
+    ${document.body.classList.contains("online") ? `<pattern id="fogTexture" width="520" height="520" patternUnits="userSpaceOnUse"><rect width="520" height="520" fill="#303746"/><circle cx="90" cy="120" r="145" fill="#8992a3" opacity=".17"/><circle cx="360" cy="270" r="190" fill="#171e2a" opacity=".35"/><circle cx="440" cy="40" r="95" fill="#a5adba" opacity=".10"/></pattern>` : `${cloudLayer("fogA", cloudTile("a", 11, "70,76,92", .9, 12, 120, 1536), 1536, "0 0", "1536 0", 170)}${cloudLayer("fogB", cloudTile("b", 29, "125,131,146", .6, 14, 90, 1024), 1024, "1024 0", "0 0", 115)}${cloudLayer("fogC", cloudTile("c", 47, "190,196,208", .32, 12, 70, 768), 768, "0 0", "768 768", 80)}`}
     <mask id="fogMask" maskUnits="userSpaceOnUse" x="0" y="0" width="${WORLD_W}" height="${WORLD_H}"><rect width="${WORLD_W}" height="${WORLD_H}" fill="#fff"/><g filter="url(#fogBlur)">${rects}</g>${eyes}</mask></defs>
-    <g mask="url(#fogMask)" opacity="${solid ? 1 : 0.6}"><rect width="${WORLD_W}" height="${WORLD_H}" fill="#2a2e39"/><rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogA)"/><rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogB)"/><rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogC)"/></g>
+    <g mask="url(#fogMask)" opacity="${solid ? 1 : 0.6}"><rect width="${WORLD_W}" height="${WORLD_H}" fill="#2a2e39"/>${document.body.classList.contains("online") ? `<rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogTexture)"/>` : `<rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogA)"/><rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogB)"/><rect width="${WORLD_W}" height="${WORLD_H}" fill="url(#fogC)"/>`}</g>
     ${fogDraft ? `<rect x="${fogDraft.x}" y="${fogDraft.y}" width="${fogDraft.w}" height="${fogDraft.h}" fill="none" stroke="${fogDraft.reveal ? "#7ee787" : "#ff7b8a"}" stroke-width="${2 / zoom}" stroke-dasharray="${6 / zoom}"/>` : ""}`;
   $("world").append(svg);
 };

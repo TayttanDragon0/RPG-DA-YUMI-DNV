@@ -1,3 +1,42 @@
+# ESPAÇO ZERO — V19 (player, movimento, névoa e equipamentos)
+
+## Alterações desta revisão
+- **Mesa do jogador bloqueada:** clique em áreas vazias, fundo, grade ou tokens alheios não inicia arrasto; ferramentas de pan/zoom e gestos de zoom ficam desativados no modo jogador. Somente o token vinculado ao jogador pode ser movido.
+- **Movimento ao vivo mais fluido:** o jogador envia atualizações pequenas em intervalos curtos; o mestre aplica transições curtas e os demais jogadores interpolam a posição recebida. A orientação acompanha o vetor horizontal/vertical do deslocamento.
+- **Orientação gradual:** o sprite usa transição 3D suave nos eixos X/Y, sem rotação Z do corpo inteiro.
+- **Tocha equipável:** a tocha embutida possui arte SVG, animação de chama, posicionamento na mão direita/esquerda e raio de luz. O mestre pode entregá-la diretamente ao personagem pela janela Itens.
+- **Iluminação com paredes:** a luz da tocha e a visão do personagem são recortadas pelas paredes pintadas na cena.
+- **Névoa persistente por personagem:** a visão atual acompanha o personagem; áreas exploradas são guardadas individualmente para cada personagem e enviadas em pequenos pacotes, sem compartilhar automaticamente a exploração de um jogador com os demais.
+- **Otimização:** a geometria de visão é armazenada em cache por posição/raio/revisão das paredes; a camada de névoa não é reconstruída quando os dados relevantes não mudam.
+
+## Teste recomendado
+1. Abra a campanha como mestre e ative a névoa na cena.
+2. Abra a Sala e entre com dois navegadores/dispositivos usando personagens diferentes.
+3. Tente clicar e arrastar áreas vazias, cenário e personagens alheios: nada deve mover a mesa.
+4. Mova cada personagem e confira a posição e a orientação nos outros clientes.
+5. Pinte uma parede entre o personagem e uma área e confira se a visão e a luz da tocha param nela.
+6. No mestre, abra **Itens**, selecione um personagem na linha da Tocha e clique em **Dar ao jogador**. No jogador, equipe a tocha em **Mão D** ou **Mão E**.
+7. Caminhe com a tocha e confira a iluminação, a névoa e a persistência das áreas exploradas.
+
+**Limitação de validação desta entrega:** os arquivos JavaScript passaram pela verificação de sintaxe e o pacote foi validado. A sessão com dois ou mais clientes conectados ainda precisa ser testada no navegador real, com a campanha publicada e a conexão PeerJS disponível.
+
+---
+
+# ESPAÇO ZERO — V18 (revisão do jogador e sincronização ao vivo)
+
+## Revisão desta entrega
+- A tela do jogador não permite arrastar, selecionar, redimensionar ou deslocar o cenário. Somente o token do próprio jogador recebe comandos de movimento.
+- A sala online transmite movimento por pacotes pequenos e frequentes, sem reenviar a cena inteira a cada passo. Mudanças estruturais continuam sendo sincronizadas como estado completo.
+- O jogador atualiza a posição dos tokens no próprio DOM e recalcula a névoa em intervalos curtos, evitando reconstruir toda a mesa a cada pacote de movimento.
+- A visão online revela a névoa a partir do personagem daquele jogador, respeitando as paredes da cena. A textura do nevoeiro no cliente online é mais leve para reduzir custo de renderização.
+- Os sprites agora fazem uma virada lateral suave no eixo Y quando o personagem se desloca horizontalmente, em vez de girar o corpo inteiro no plano.
+- A Tocha tem ilustração SVG própria e já aparece na biblioteca de itens do mestre; o mestre pode selecionar um personagem e usar **Dar ao jogador** para colocá-la na bolsa dele.
+
+## Multiplayer
+A sala usa PeerJS/WebRTC para comunicação em tempo real entre mestre e jogadores. O mestre precisa manter a aba da campanha aberta e todos precisam de conexão com a internet. O serviço PeerJS é usado para sinalização/conexão; os movimentos são enviados como atualizações leves entre os clientes.
+
+---
+
 # ESPAÇO ZERO (V11)
 - **🧱 Pincel de paredes** (barra no rodapé do mapa): pinte sobre o PNG o que é parede (ou apague). Os personagens só liberam a névoa até onde a visão chega sem atravessar parede. Fica salvo por cena e vale também na janela do jogador e na sala.
 - **📖 Bestiário descoberto:** selecione uma criatura no mapa > Inspetor > Revelar. Ordem: Aparência, Comportamento, Onde vive, Poderes, Necessidades, Utilidades, Curiosidade. O jogador vê só o liberado.

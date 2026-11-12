@@ -71,17 +71,25 @@ body.fx-control::after{background:repeating-linear-gradient(0deg,#0000 0 3px,#a0
 .logHead{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid #4b37a8}.logHead b{flex:1}
 #logList{overflow:auto;padding:6px 8px;font-size:12px}.logRow{padding:2px 0;border-bottom:1px solid #ffffff10}.logRow time{color:var(--gold);margin-right:6px}
 .wallBar{position:fixed;bottom:56px;left:50%;transform:translateX(-50%);z-index:850;display:flex;gap:6px;align-items:center;background:#140d36e6;border:1px solid var(--gold);padding:4px 8px;font-size:12px}
-.heldItem{position:absolute;width:55%;top:30%;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 2px #000)}.heldItem.hand-R{right:-35%}.heldItem.hand-L{left:-35%;transform:scaleX(-1)}
+.token img.heldItem{position:absolute;width:32%;height:32%;object-fit:contain;pointer-events:none;z-index:8;filter:drop-shadow(0 2px 3px #000)}.token img.heldItem.hand-R{right:3%;top:49%;transform:rotate(28deg)}.token img.heldItem.hand-L{left:3%;top:49%;transform:scaleX(-1) rotate(28deg)}
+.token img.heldItem.torchHeld{width:29%;height:42%;top:19%;filter:drop-shadow(0 0 5px #ffb347) drop-shadow(0 2px 3px #000);transform-origin:50% 82%;animation:ezTorchFlicker 1.35s ease-in-out infinite alternate}
+.token img.heldItem.torchHeld.hand-R{right:1%;left:auto;transform:rotate(24deg)}.token img.heldItem.torchHeld.hand-L{left:1%;right:auto;transform:scaleX(-1) rotate(24deg)}
+@keyframes ezTorchFlicker{0%{filter:drop-shadow(0 0 4px #ff9a36) drop-shadow(0 2px 3px #000);opacity:.94}100%{filter:drop-shadow(0 0 9px #ffd16a) drop-shadow(0 2px 3px #000);opacity:1}}
 .bagGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.bagTile{text-align:center;font-size:10px;border:1px solid #4b37a8;padding:3px}.bagTile img{width:100%;aspect-ratio:1;object-fit:contain}.bagTile button{padding:2px 4px;font-size:10px}
 .bestEntry{border-top:1px solid #4b37a8;padding:4px 0;font-size:12px}.itemRow{display:flex;gap:6px;align-items:center;border-bottom:1px solid #ffffff18;padding:4px 0}.itemRow img{width:44px;height:44px;object-fit:contain}
 
-/* V18.1 — a mesa do jogador é somente leitura; apenas o próprio token é arrastável. */
-body.player #backgroundLayer,
-body.player #gridOverlay,
-body.player #fogLayer,
-body.player #wallLayer,
-body.player #rulerLayer { pointer-events:none !important; }
-body.player #viewport { cursor:default !important; touch-action:pan-y; }
-body.player .backgroundLayer { cursor:default !important; }
-body.player .token:not(.mine) { pointer-events:none !important; }
-body.player .token.mine { touch-action:none; }
+/* Virada lateral suave do sprite: eixo Y, sem inclinar o corpo no mapa. */
+.token{perspective:720px}.token > img:not(.heldItem){transform-style:preserve-3d;backface-visibility:visible;transform-origin:center center;transition:transform .34s cubic-bezier(.2,.75,.25,1)}
+body.player #viewport{touch-action:none;overscroll-behavior:contain;cursor:default}
+body.player #world,body.player #backgroundLayer,body.player #gridOverlay,body.player #fogLayer{user-select:none}
+body.player #backgroundLayer{pointer-events:none!important}
+body.player .token:not(.mine){pointer-events:none!important}
+body.player .token.mine{touch-action:none}
+
+/* Player view: no map editing, pan, zoom or selection surfaces. */
+body.player #panMode,body.player #zoomIn,body.player #zoomOut,body.player #zoomText,body.player #centerView,body.player #snapToggle,body.player #undoBtn,body.player #redoBtn,body.player #mobileLibraryToggle,body.player #mobileInspectorToggle{display:none!important}
+body.player #backgroundLayer,body.player #gridOverlay,body.player #fogLayer,body.player #wallLayer{pointer-events:none!important}
+body.player .token:not(.mine){pointer-events:none!important}
+body.player .token.mine{touch-action:none;user-select:none}
+
+.token.remoteMoving{transition:left .065s linear,top .065s linear}
