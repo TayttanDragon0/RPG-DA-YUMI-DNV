@@ -54,7 +54,7 @@ function dmMode() {
       if (!p.charId) return sendRoster(p);
       ids.forEach(i => { if (!p.sent.has(i)) { p.sent.add(i); p.conn.send({ t: "asset", id: i, data: bigList[i] }); } });
       const ch = state.characters.find(x => x.id === p.charId), sheet = {}; if (ch) SHEET.forEach(k => sheet[k] = ch[k]);
-      p.conn.send({ t: "state", scene: obj, chars, sheet: ch ? sheet : null, you: p.charId, bestiary: window.zeroBest?.() || [] });
+      p.conn.send({ t: "state", scene: obj, chars, sheet: ch ? sheet : null, you: p.charId, bestiary: window.zeroBest?.(p.charId) || [] });
     });
   }
   const sched = ms => { if (timer || !conns.size) return; timer = setTimeout(() => { timer = 0; syncAll(); }, ms || 150); };

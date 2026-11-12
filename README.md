@@ -105,3 +105,10 @@ Use `💾 Salvar arquivo`. Tudo fica dentro do arquivo `.rpg.json`, incluindo im
 
 ## Compartilhar com os jogadores
 Compartilhe a tela pelo Discord, Meet ou outra ferramenta. A aplicação funciona offline e não sincroniza os jogadores por rede.
+
+
+## V15 — Sistema de ficha ampliado
+- Atributos-base: Força, Velocidade/Agilidade, Inteligência, Porte/Presença, Vigor, Sorte e Foco.
+- Proficiências continuam separadas dos atributos, conforme o documento do sistema.
+- Focos de poder ficam como progressão/especialização própria (físico, distância ou mágico), em vez de serem confundidos com atributo.
+- O modelo foi inspirado em boas ideias de fichas de RPG investigativo, mas mantém o sistema próprio do Espaço Zero.

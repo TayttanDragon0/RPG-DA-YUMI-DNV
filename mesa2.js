@@ -41,7 +41,10 @@ if (!P) {
 }
 // ================= BESTIÁRIO DESCOBERTO =================
 const STAGES = [["fisicas", "Aparência"], ["comportamento", "Comportamento"], ["onde", "Onde vive"], ["poderes", "Poderes"], ["necessidades", "Necessidades"], ["utilidades", "Utilidades"], ["curiosidade", "Curiosidade"]];
-window.zeroBest = () => state.bestiary.filter(c => c.revealed > 0).map(c => ({ id: c.id, name: c.name, color: c.color, n: c.revealed, fields: STAGES.slice(0, c.revealed).map(([k, n]) => [n, c[k] || "—"]) }));
+window.zeroBest = (charId = null) => state.bestiary.map(c => {
+  const n = charId ? Math.max(0, Math.min(STAGES.length, Number(c.knowledge?.[charId] ?? c.revealed ?? 0))) : Number(c.revealed || 0);
+  return { c, n };
+}).filter(x => x.n > 0).map(({c,n}) => ({ id: c.id, name: c.name, color: c.color, n, fields: STAGES.slice(0, n).map(([k, label]) => [label, c[k] || "—"]) }));
 // ================= ITENS =================
 const itemById = id => (state.items || []).find(i => i.id === id);
 window.zeroItemsView = () => Object.fromEntries((state.items || []).map(i => [i.id, { name: i.name, src: i.src, kind: i.kind }]));
@@ -72,24 +75,35 @@ if (!P) {
   const btn = document.createElement("button"); btn.id = "itemBtn"; btn.textContent = "🎁"; btn.title = "Itens"; $("playerWin").before(btn);
   const pn = document.createElement("div"); pn.id = "itemPanel"; pn.className = "logPanel hidden"; document.body.append(pn);
   const draw = () => {
-    const its = state.items || [];
-    pn.innerHTML = `<div class="logHead"><b>🎁 Itens</b><label class="fileButton">+ PNG<input id="itemFile" type="file" accept="image/*" multiple hidden></label><button id="itemX">✕</button></div><div id="logList">${its.map(i => `<div class="itemRow"><img src="${i.src}"><div><input data-n="${i.id}" value="${esc(i.name)}"><label><input type="checkbox" data-k="${i.id}" ${i.kind === "consume" ? "checked" : ""}> consumível</label></div><div><select data-g="${i.id}">${state.characters.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select><button data-give="${i.id}">Dar</button><button data-del="${i.id}">🗑</button></div></div>`).join("") || "<p class='hint'>Importe PNGs de itens. Depois entregue a um personagem.</p>"}</div>`;
+    const its = state.items || []; state.masterBag = state.masterBag || [];
+    pn.innerHTML = `<div class="logHead"><b>🎁 Itens & Inventário do Mestre</b><label class="fileButton">+ PNG<input id="itemFile" type="file" accept="image/*" multiple hidden></label><button id="itemX">✕</button></div><div id="logList">${its.map(i => `<div class="itemRow"><img src="${i.src}"><div><input data-n="${i.id}" value="${esc(i.name)}"><label><input type="checkbox" data-k="${i.id}" ${i.kind === "consume" ? "checked" : ""}> consumível</label></div><div><select data-g="${i.id}">${state.characters.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select><button data-master="${i.id}">+ Mestre</button><button data-give="${i.id}">Dar</button><button data-del="${i.id}">🗑</button></div></div>`).join("") || "<p class='hint'>Importe PNGs de itens. Depois entregue a um personagem.</p>"}</div><div class="masterInventory"><h3>🎒 Inventário do Mestre</h3><div class="masterBagGrid">${state.masterBag.map((b,idx) => { const i=itemById(b.itemId); return i ? `<div class="bagTile"><img src="${i.src}"><small>${esc(i.name)}</small><div><button data-mgive="${idx}">Dar</button><button data-mdel="${idx}">✕</button></div></div>` : ""; }).join("") || "<p class='hint'>Vazio. Use + Mestre nos itens abaixo.</p>"}</div></div>`;
     $("itemX").onclick = () => pn.classList.add("hidden");
     $("itemFile").onchange = e => [...e.target.files].forEach(f => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 256 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.max(1, im.width * k); c.height = Math.max(1, im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); (state.items = state.items || []).push({ id: uid(), name: f.name.replace(/\.[^.]+$/, ""), src: c.toDataURL("image/png"), kind: "equip" }); markDirty("Item importado"); draw(); }; im.src = r.result; }; r.readAsDataURL(f); });
     pn.querySelectorAll("[data-n]").forEach(i => i.onchange = () => { itemById(i.dataset.n).name = i.value; markDirty("Item renomeado"); });
     pn.querySelectorAll("[data-k]").forEach(i => i.onchange = () => { itemById(i.dataset.k).kind = i.checked ? "consume" : "equip"; markDirty("Item alterado"); });
     pn.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { state.items = state.items.filter(i => i.id !== b.dataset.del); state.characters.forEach(c => c.bag = (c.bag || []).filter(x => x.itemId !== b.dataset.del)); markDirty("Item removido"); draw(); renderWorld(); });
+    pn.querySelectorAll("[data-master]").forEach(b => b.onclick = () => { state.masterBag.push({ uid: uid(), itemId: b.dataset.master }); markDirty("Item guardado no inventário do mestre"); draw(); });
+    pn.querySelectorAll("[data-mdel]").forEach(b => b.onclick = () => { state.masterBag.splice(Number(b.dataset.mdel), 1); markDirty("Item removido do inventário do mestre"); draw(); });
+    pn.querySelectorAll("[data-mgive]").forEach(b => b.onclick = () => { const entry = state.masterBag[Number(b.dataset.mgive)]; const names = state.characters.map(c => `${c.name} (${c.id})`).join("\n"); const id = prompt("Dar para qual personagem? Digite o ID após o nome:\n" + names); const ch = state.characters.find(c => c.id === id || c.name.toLowerCase() === String(id).toLowerCase()); if (!ch) return status("Personagem não encontrado"); (ch.bag = ch.bag || []).push({ uid: uid(), itemId: entry.itemId, hand: "" }); state.masterBag.splice(Number(b.dataset.mgive),1); markDirty("Mestre entregou item"); draw(); });
     pn.querySelectorAll("[data-give]").forEach(b => b.onclick = () => { const ch = state.characters.find(c => c.id === pn.querySelector(`[data-g="${b.dataset.give}"]`).value); if (!ch) return; (ch.bag = ch.bag || []).push({ uid: uid(), itemId: b.dataset.give, hand: "" }); logAction(`Mestre deu ${itemById(b.dataset.give).name} a ${ch.name}`, "itens"); markDirty("Item entregue"); status("Item entregue a " + ch.name); });
   };
   btn.onclick = () => { pn.classList.toggle("hidden"); draw(); };
   const _ri = renderInspector;
   renderInspector = function () {
     _ri(); const t = selectedToken(), c = t && t.creatureId && state.bestiary.find(x => x.id === t.creatureId); if (!c) return;
-    const n = c.revealed || 0, d = document.createElement("div"); d.className = "atkBox";
-    d.innerHTML = `<div class="controlTitle">📖 BESTIÁRIO DESCOBERTO</div><p class="hint">Jogadores veem: ${n}/${STAGES.length}${n < STAGES.length ? " · próxima: " + STAGES[n][1] : " · tudo revelado"}</p><div class="actionRow"><button id="bRev" class="primary">Revelar</button><button id="bHide">Esconder</button></div>`;
+    c.knowledge = c.knowledge || {};
+    const chars = state.characters || [];
+    const currentId = chars[0]?.id || "";
+    const nFor = id => Math.max(0, Math.min(STAGES.length, Number(c.knowledge[id] ?? 0)));
+    const d = document.createElement("div"); d.className = "atkBox";
+    d.innerHTML = `<div class="controlTitle">📖 CONHECIMENTO DO BESTIÁRIO</div><p class="hint">Defina exatamente o quanto cada jogador conhece sobre esta criatura.</p><label>Jogador <select id="bWho">${chars.map(ch => `<option value="${esc(ch.id)}">${esc(ch.name)}</option>`).join("")}</select></label><p id="bKnow" class="hint"></p><div class="actionRow"><button id="bRev" class="primary">+ Revelar próximo</button><button id="bHide">− Esconder último</button><button id="bAll">Revelar tudo</button></div>`;
     $("inspectorContent").append(d);
-    $("bRev").onclick = () => { if (n >= STAGES.length) return; c.revealed = n + 1; logAction(`Bestiário: ${c.name} — ${STAGES[n][1]} revelada`, "itens"); markDirty("Bestiário revelado"); renderInspector(); };
-    $("bHide").onclick = () => { c.revealed = Math.max(0, n - 1); markDirty("Bestiário escondido"); renderInspector(); };
+    const who = $("bWho"), info = $("bKnow");
+    const refresh = () => { const n = nFor(who.value); info.textContent = `Este jogador sabe ${n}/${STAGES.length}${n < STAGES.length ? " · próxima: " + STAGES[n][1] : " · tudo revelado"}`; };
+    who.value = currentId; refresh(); who.onchange = refresh;
+    $("bRev").onclick = () => { const id = who.value, n = nFor(id); if (n >= STAGES.length) return; c.knowledge[id] = n + 1; logAction(`Bestiário: ${c.name} — ${STAGES[n][1]} revelada para ${chars.find(x=>x.id===id)?.name||"jogador"}`, "itens"); markDirty("Conhecimento revelado"); refresh(); };
+    $("bHide").onclick = () => { const id = who.value; c.knowledge[id] = Math.max(0, nFor(id) - 1); markDirty("Conhecimento escondido"); refresh(); };
+    $("bAll").onclick = () => { c.knowledge[who.value] = STAGES.length; markDirty("Bestiário totalmente revelado"); refresh(); };
   };
 }
 })();

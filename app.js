@@ -36,12 +36,28 @@ function imgTransform(t) {
   return `transform:rotate(${Number(t.rot) || 0}deg) scaleX(${t.flip ? -1 : 1})`;
 }
 
+function objectIconSvg(icon = "📦") {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="24" fill="#1b2432"/><text x="80" y="108" text-anchor="middle" font-size="82">${icon}</text></svg>`)}`;
+}
+const TORCH_ASSET_ID = "builtin-torch";
+function builtInTorch() {
+  return { id: TORCH_ASSET_ID, builtin: true, name: "Tocha", category: "Luz", description: "Uma tocha acesa que ilumina a área.", icon: "🔥", src: objectIconSvg("🔥"), props: [{ key: "Luz", value: "Ilumina uma área" }, { key: "Duração", value: "1 hora" }, { key: "Peso", value: "0,5 kg" }] };
+}
+function ensureBuiltInAssets(assets) {
+  const list = Array.isArray(assets) ? assets : [];
+  if (!list.some(a => a && a.id === TORCH_ASSET_ID)) list.unshift(builtInTorch());
+  return list;
+}
+function normalizeObjectProps(props) {
+  return Array.isArray(props) ? props.filter(p => p && String(p.key || "").trim()).map(p => ({ key: String(p.key).trim(), value: String(p.value ?? "").trim() })) : [];
+}
+
 function blankState() {
   return {
     version: 9,
     name: "Minha Campanha",
     active: "scene-1",
-    assets: [],
+    assets: [builtInTorch()],
     characters: [],
     bestiary: seedBestiary(),
     musicTracks: [],
@@ -109,7 +125,7 @@ function normalizeState(loaded) {
   const base = blankState();
   const result = { ...base, ...loaded };
   result.version = 9;
-  result.assets = Array.isArray(loaded.assets) ? loaded.assets : [];
+  result.assets = ensureBuiltInAssets(Array.isArray(loaded.assets) ? loaded.assets : []);
   result.characters = Array.isArray(loaded.characters) ? loaded.characters : [];
   result.bestiary = Array.isArray(loaded.bestiary) ? loaded.bestiary : seedBestiary();
   result.musicTracks = Array.isArray(loaded.musicTracks) ? loaded.musicTracks : [];
@@ -186,7 +202,7 @@ function renderLibrary() {
     element.className = "libItem" + (libraryMode === "creatures" ? " creatureLibItem" : "");
     element.draggable = true;
     const src = libraryMode === "assets" ? item.src : libraryMode === "characters" ? item.portrait : item.sprite;
-    const subtitle = libraryMode === "creatures" ? `<small>${escapeHtml(item.category || "Sem categoria")}</small><small class="creatureStats">❤️ ${Number(item.life)||0} · 🛡 ${Number(item.defenses)||0} · ⚡ ${Number(item.speed)||0}</small>` : "";
+    const subtitle = libraryMode === "creatures" ? `<small>${escapeHtml(item.category || "Sem categoria")}</small><small class="creatureStats">❤️ ${Number(item.life)||0} · 🛡 ${Number(item.defenses)||0} · ⚡ ${Number(item.speed)||0}</small>` : libraryMode === "assets" ? `<small>${escapeHtml(item.category || "Objeto")}${item.props?.length ? ` · ⚙ ${item.props.length} propriedade${item.props.length > 1 ? "s" : ""}` : ""}</small>` : "";
     element.innerHTML = `${src ? `<img src="${src}" alt="">` : "👤"}<span>${escapeHtml(item.name)}</span>${subtitle}`;
     element.addEventListener("dragstart", event => {
       event.dataTransfer.effectAllowed = "copy";
@@ -361,7 +377,8 @@ function renderWorld() {
     element.dataset.id = token.id;
     const owner = vitalOwner(token);
     if (owner) ensureVitals(owner);
-    element.innerHTML = `<img src="${token.src}" alt="" style="${imgTransform(token)}">${owner ? `<div class="tokenHp ${Number(owner.life) <= 0 ? "dead" : ""}">❤ ${escapeHtml(owner.life)}/${escapeHtml(owner.maxLife)}${Number(owner.fatigue) > 0 ? ` · ⚡${escapeHtml(owner.fatigue)}` : ""}</div><div class="tokenBar" style="--lost:${100 - clamp(owner.life / Math.max(1, owner.maxLife) * 100, 0, 100)}"><span style="width:${clamp(owner.life / Math.max(1, owner.maxLife) * 100, 0, 100)}%"></span></div>` : ""}<div class="tokenLabel">${escapeHtml(token.name)}${Number.isFinite(token.init) ? ` <b class="initTag">⚔${token.init}</b>` : ""}</div>`;
+    const objectVisual = token.objectProps && !token.src ? `<div class="objectTokenIcon">${escapeHtml(token.icon || "📦")}</div>` : `<img src="${token.src || objectIconSvg(token.icon || "📦")}" alt="" style="${imgTransform(token)}">`;
+    element.innerHTML = `${objectVisual}${owner ? `<div class="tokenHp ${Number(owner.life) <= 0 ? "dead" : ""}">❤ ${escapeHtml(owner.life)}/${escapeHtml(owner.maxLife)}${Number(owner.fatigue) > 0 ? ` · ⚡${escapeHtml(owner.fatigue)}` : ""}</div><div class="tokenBar" style="--lost:${100 - clamp(owner.life / Math.max(1, owner.maxLife) * 100, 0, 100)}"><span style="width:${clamp(owner.life / Math.max(1, owner.maxLife) * 100, 0, 100)}%"></span></div>` : ""}<div class="tokenLabel">${escapeHtml(token.name)}${Number.isFinite(token.init) ? ` <b class="initTag">⚔${token.init}</b>` : ""}</div>`;
     element.addEventListener("pointerdown", event => startTokenDrag(event, token, element));
     element.addEventListener("dblclick", () => {
       if (token.characterId) {
@@ -678,6 +695,7 @@ function renderInspector() {
       <img src="${token.src}" alt="">
       <label>Nome<input id="inspectName" value="${escapeHtml(token.name)}"></label>
       <p class="muted">${token.type === "Personagem" ? "Personagem" : token.type === "Criatura" ? "Criatura" : "Objeto"}</p>
+      ${token.type === "Objeto" && (token.objectCategory || token.objectDescription || token.objectProps?.length) ? `<div class="objectDetails"><h4>🧰 ${escapeHtml(token.objectCategory || "Objeto")}</h4>${token.objectDescription ? `<p>${escapeHtml(token.objectDescription)}</p>` : ""}${token.objectProps?.length ? `<dl>${token.objectProps.map(p => `<dt>${escapeHtml(p.key)}</dt><dd>${escapeHtml(p.value)}</dd>`).join("")}</dl>` : ""}</div>` : ""}
       <div class="twoCols"><label>X<input id="inspectX" type="number" value="${Math.round(token.x)}"></label><label>Y<input id="inspectY" type="number" value="${Math.round(token.y)}"></label></div>
       <div class="twoCols"><label>Largura<input id="inspectW" type="number" min="32" value="${Math.round(token.w)}"></label><label>Altura<input id="inspectH" type="number" min="32" value="${Math.round(token.h)}"></label></div>
       <div class="twoCols"><label>Formato<select id="inspectShape"><option value="square">Quadrado</option><option value="round">Redondo</option></select></label><label>Aro<input id="inspectColor" type="color" value="${token.color || "#81a3ff"}"></label></div>
@@ -891,32 +909,25 @@ $("rulerToggle").onclick = () => {
   status(rulerTool ? "Régua: arraste na mesa para medir (1 quadrado = 1,5 m)" : "Régua desligada");
 };
 
-// Dice roller.
+// Dice roller com animação visual temporária (o resultado é decidido antes da animação).
 const diceHistory = [];
+function secureDie(sides) { const a = new Uint32Array(1), limit = Math.floor(0x100000000 / sides) * sides; do { crypto.getRandomValues(a); } while (a[0] >= limit); return (a[0] % sides) + 1; }
+function animateDie(sides, result) { const ov = $("diceOverlay"); if (!ov) return; ov.classList.remove("hidden"); ov.innerHTML = `<div class="diceAnim d${sides}"><span>?</span></div>`; const die = ov.firstElementChild; const span = die.querySelector("span"); let n = 0; const tick = setInterval(() => { span.textContent = secureDie(sides); if (++n >= 11) { clearInterval(tick); span.textContent = result; die.classList.add("land"); setTimeout(() => { ov.classList.add("hidden"); ov.innerHTML = ""; }, 1100); } }, 85); }
 function rollDice(sides) {
   const count = clamp(Math.floor(Number($("diceCount").value)) || 1, 1, 50);
   const mod = Math.floor(Number($("diceMod").value)) || 0;
-  const rolls = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
+  const rolls = Array.from({ length: count }, () => secureDie(sides));
   const total = rolls.reduce((a, b) => a + b, 0) + mod;
   const text = `${count}d${sides}${mod ? (mod > 0 ? "+" : "") + mod : ""}`;
+  animateDie(sides, rolls[0]);
   $("diceResult").textContent = total;
   $("diceDetail").textContent = `${text}: [${rolls.join(", ")}]${mod ? ` ${mod > 0 ? "+" : "−"} ${Math.abs(mod)}` : ""}`;
   $("diceResult").classList.toggle("crit", sides === 20 && count === 1 && rolls[0] === 20);
   $("diceResult").classList.toggle("fail", sides === 20 && count === 1 && rolls[0] === 1);
-  diceHistory.unshift(`${text} → ${total}`);
-  diceHistory.length = Math.min(diceHistory.length, 8);
-  $("diceHistory").textContent = diceHistory.join("  ·  ");
+  diceHistory.unshift(`${text} → ${total}`); diceHistory.length = Math.min(diceHistory.length, 8); $("diceHistory").textContent = diceHistory.join("  ·  ");
 }
-function showRoll(total, detail, history, kind = "") {
-  $("diceResult").textContent = total;
-  $("diceDetail").textContent = detail;
-  $("diceResult").classList.toggle("crit", kind === "crit");
-  $("diceResult").classList.toggle("fail", kind === "fail");
-  diceHistory.unshift(history);
-  diceHistory.length = Math.min(diceHistory.length, 8);
-  $("diceHistory").textContent = diceHistory.join("  ·  ");
-}
-const d = sides => Math.floor(Math.random() * sides) + 1;
+function showRoll(total, detail, history, kind = "") { $("diceResult").textContent = total; $("diceDetail").textContent = detail; $("diceResult").classList.toggle("crit", kind === "crit"); $("diceResult").classList.toggle("fail", kind === "fail"); diceHistory.unshift(history); diceHistory.length = Math.min(diceHistory.length, 8); $("diceHistory").textContent = diceHistory.join("  ·  "); }
+const d = sides => secureDie(sides);
 
 // Ordem Paranormal skill test: roll d20 equal to the attribute and keep the highest;
 // with attribute 0, roll 2d20 and keep the lowest. Then add skill training and other bonuses.
@@ -981,13 +992,44 @@ $("gridToggle").onclick = () => {
   $("gridOverlay")?.classList.toggle("off", !gridVisible);
 };
 
+
+// Criador de objetos com propriedades livres.
+let pendingObjectImage = "";
+function addObjectPropRow(key = "", value = "") {
+  const row = document.createElement("div"); row.className = "objectPropRow";
+  row.innerHTML = `<input class="objectPropKey" placeholder="Propriedade" value="${escapeHtml(key)}"><input class="objectPropValue" placeholder="Valor" value="${escapeHtml(value)}"><button type="button" title="Remover">✕</button>`;
+  row.querySelector("button").onclick = () => row.remove();
+  $("objectProps").append(row);
+}
+function openObjectModal() {
+  pendingObjectImage = ""; $("o_name").value = ""; $("o_category").value = ""; $("o_description").value = ""; $("o_image").value = "";
+  $("objectProps").innerHTML = ""; addObjectPropRow("Peso", ""); addObjectPropRow("Efeito", "");
+  $("objectPreview").removeAttribute("src"); $("objectPlaceholder").style.display = ""; $("objectImageStatus").textContent = "A imagem é opcional. Sem imagem, o objeto usa um ícone.";
+  $("objectModal").classList.remove("hidden");
+}
+function closeObjectModal() { $("objectModal").classList.add("hidden"); }
+$("createObject").onclick = openObjectModal;
+$("closeObject").onclick = closeObjectModal; $("cancelObject").onclick = closeObjectModal;
+$("addObjectProp").onclick = () => addObjectPropRow();
+$("o_image").onchange = async e => {
+  const file = e.target.files?.[0]; if (!file) return;
+  pendingObjectImage = await fileData(file); $("objectPreview").src = pendingObjectImage; $("objectPlaceholder").style.display = "none"; $("objectImageStatus").textContent = "Imagem definida para este objeto.";
+};
+$("saveObject").onclick = () => {
+  const name = $("o_name").value.trim(); if (!name) { alert("Dê um nome ao objeto."); return; }
+  const props = [...document.querySelectorAll("#objectProps .objectPropRow")].map(row => ({ key: row.querySelector(".objectPropKey").value.trim(), value: row.querySelector(".objectPropValue").value.trim() })).filter(p => p.key);
+  state.assets.push({ id: uid(), name, category: $("o_category").value.trim() || "Objeto", description: $("o_description").value.trim(), src: pendingObjectImage, icon: "📦", props: normalizeObjectProps(props) });
+  libraryMode = "assets"; document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.lib === "assets"));
+  closeObjectModal(); render(); markDirty("Objeto criado"); status("🧰 Objeto salvo na biblioteca");
+};
+
 // Import ordinary object images.
 $("importImages").onclick = () => $("imageFiles").click();
 $("imageFiles").onchange = async event => {
   try {
     for (const file of [...event.target.files]) {
       if (!file.type.startsWith("image/")) continue;
-      state.assets.push({ id: uid(), name: file.name.replace(/\.[^.]+$/, ""), src: await fileData(file) });
+      state.assets.push({ id: uid(), name: file.name.replace(/\.[^.]+$/, ""), category: "Objeto", src: await fileData(file), props: [] });
     }
     render();
     markDirty("Imagens importadas");
@@ -1026,7 +1068,7 @@ function placeLibraryItem(kind, id, x = null, y = null) {
   const py = y == null ? (rect.height / 2 - panY) / zoom : y;
   if (kind === "asset") {
     const asset = state.assets.find(item => item.id === id);
-    if (asset) { const token = { id: uid(), name: asset.name, src: asset.src, type: "Objeto", x: px - 75, y: py - 75, w: 150, h: 150, z: 20, locked: false }; scene().tokens.push(token); selected = token.id; }
+    if (asset) { const token = { id: uid(), assetId: asset.id, name: asset.name, src: asset.src || "", icon: asset.icon || "📦", type: "Objeto", objectCategory: asset.category || "Objeto", objectDescription: asset.description || "", objectProps: normalizeObjectProps(asset.props), x: px - 75, y: py - 75, w: 150, h: 150, z: 20, locked: false }; scene().tokens.push(token); selected = token.id; }
   } else if (kind === "creature") {
     const creature = state.bestiary.find(item => item.id === id);
     if (creature) { const token = makeCreatureToken(creature, px - 75, py - 75); scene().tokens.push(token); selected = token.id; }
@@ -1085,13 +1127,28 @@ $("backgroundFile").onchange = async event => {
 };
 
 // Character sheet: sprite mandatory; new character automatically gets a token.
-const characterFields = ["name","universe","appearance","weapon","personality","life","fatigue","maxLife","fatigueMax","defenses","strength","speed","intelligence","build","proficiencies","powers","weaknesses","history"];
+const characterFields = ["name","universe","appearance","weapon","personality","life","fatigue","maxLife","fatigueMax","defenses","strength","speed","intelligence","build","vigor","luck","focus","proficiencies","magics","magicPoints","powers","weaknesses","history"];
+const PROFICIENCIES_PRESET = ["Mirar (arma branca)","Mirar (arma de fogo/magia)","Recuperação de dados","Flexibilidade","Reflexo","Sorte","Lábia","Sexto sentido","Preparação","Tecnologia","Carisma","Cura","Furtividade","Luta","Intimidação","Durabilidade","Determinação","Fuga"];
+const MAGICS_PRESET = ["Arrombar tranca","Controle de água, terra, fogo e ar","Controle de gravidade","Fúria divina","Dança sombria","Ilusões","Criar portais","Chuva de prata","Sopro de esperança","Dívida da alma","Verdade ilusória","Luz do fim","Carcará","Construção","Consertar","Detectar ameaças","Vozes","Mira divina","Falsa impressão","Favor cobrado","Neblina","Mãos mansas","Veneno","Ácido","Bússola da saudade","Descansar","Mundo estranho","Correntes gêmeas","Vampiro","Controle único","Provocação","Cura","Regeneração","Xeque-Mate","Absorção"];
+function parseProfs(v){ try{return JSON.parse(v||"{}")}catch{return {}} }
+function parseMagics(v){ try{return JSON.parse(v||"[]")}catch{return []} }
+function renderCharacterPresets(){
+  const prof = parseProfs($("c_proficiencies").value), magic = parseMagics($("c_magics").value);
+  const used = Object.values(prof).reduce((a,b)=>a+(Number(b)||0),0), remain=21-used;
+  $("proficiencyBudget").textContent=`Usados: ${used}/21 • Restam: ${remain} • cada valor: 0, 3, 6...`;
+  $("proficiencyPreset").innerHTML=PROFICIENCIES_PRESET.map(n=>`<label class="presetItem"><span>${n}</span><select data-prof="${n}">${[0,3,6,9,12,15,18,21].map(x=>`<option value="${x}" ${Number(prof[n]||0)===x?'selected':''}>${x||'—'}</option>`).join('')}</select></label>`).join('');
+  $("proficiencyPreset").querySelectorAll('select').forEach(el=>el.onchange=()=>{ const p=parseProfs($("c_proficiencies").value); p[el.dataset.prof]=Number(el.value); const total=Object.values(p).reduce((a,b)=>a+(Number(b)||0),0); if(total>21){ alert("O total de proficiências não pode passar de 21 pontos."); p[el.dataset.prof]=0; } $("c_proficiencies").value=JSON.stringify(p); renderCharacterPresets(); });
+  const limit=Math.max(0,Number($("c_magicPoints").value)||10);
+  $("magicBudget").textContent=`Selecionadas: ${magic.length}/${limit} • no início você pode ter no máximo ${limit} magias/pontos.`;
+  $("magicPreset").innerHTML=MAGICS_PRESET.map(n=>`<label class="presetItem"><input type="checkbox" data-magic="${n}" ${magic.includes(n)?'checked':''}> <span>${n}</span></label>`).join('');
+  $("magicPreset").querySelectorAll('input').forEach(el=>el.onchange=()=>{ let m=parseMagics($("c_magics").value); if(el.checked){ if(m.length>=limit){ alert(`Limite de ${limit} magias/pontos iniciais atingido.`); el.checked=false; return; } m.push(el.dataset.magic); } else m=m.filter(x=>x!==el.dataset.magic); $("c_magics").value=JSON.stringify(m); renderCharacterPresets(); });
+}
 function openCharacter(character = null) {
   editingCharacter = character;
   pendingPortrait = character?.portrait || "";
   const defaults = {
-    name: "", universe: "", appearance: "", weapon: "", personality: "", life: 100, fatigue: 0,
-    defenses: "", strength: 0, speed: 0, intelligence: 0, build: "", proficiencies: "", powers: "",
+    name: "", universe: "", appearance: "", weapon: "", personality: "", life: 100, fatigue: 20,
+    defenses: "", strength: 0, speed: 0, intelligence: 0, build: 0, vigor: 0, luck: 0, focus: 0, proficiencies: "", magics: "", magicPoints: 10, powers: "",
     weaknesses: "", history: ""
   };
   const data = { ...defaults, ...(character || {}) };
@@ -1102,6 +1159,7 @@ function openCharacter(character = null) {
     $("c_" + field).value = value;
   });
   $("c_portrait").value = "";
+  renderCharacterPresets();
   updatePortraitPreview();
   $("portraitStatus").textContent = pendingPortrait ? "Sprite já definido. Escolha outro para substituir." : "Selecione o sprite obrigatório deste personagem.";
   $("deleteCharacter").classList.toggle("hidden", !character);
@@ -1141,11 +1199,16 @@ $("saveCharacter").onclick = async () => {
   const character = editingCharacter || { id: uid() };
   characterFields.forEach(field => {
     const value = $("c_" + field).value;
-    character[field] = ["life","fatigue","maxLife","fatigueMax","strength","speed","intelligence"].includes(field) ? Number(value) || 0 : value;
+    character[field] = ["life","fatigue","maxLife","fatigueMax","strength","speed","intelligence","build","vigor","luck","focus"].includes(field) ? Number(value) || 0 : value;
   });
   character.portrait = pendingPortrait;
   if (!(character.maxLife >= 1)) character.maxLife = Math.max(1, character.life);
   if (!(character.fatigueMax >= 1)) character.fatigueMax = 20;
+  // Cansaço sempre nasce cheio; depois o jogador controla a queda manualmente.
+  if (isNew) character.fatigue = character.fatigueMax;
+  const profTotal = Object.values(parseProfs(character.proficiencies)).reduce((a,b)=>a+(Number(b)||0),0);
+  if (profTotal > 21 || Object.values(parseProfs(character.proficiencies)).some(v => Number(v)%3!==0)) { alert("Proficiências inválidas: máximo 21 e somente múltiplos de 3."); return; }
+  if (parseMagics(character.magics).length > (Number(character.magicPoints)||10)) { alert("Você excedeu o limite de magias iniciais."); return; }
 
   if (isNew) state.characters.push(character);
 
@@ -1243,7 +1306,7 @@ function makeCreatureToken(creature, x, y) {
   return {
     id: uid(), name: n ? `${creature.name} ${n + 1}` : creature.name, src: creature.sprite, type: "Criatura",
     creatureId: creature.id, x, y, w: 150, h: 150, z: 30, locked: false, shape: "round", color: creature.color || "#c25b6b",
-    life, maxLife: life, fatigue: 0, fatigueMax: Number(creature.fatigue) || 20, speed: Number(creature.speed) || 0
+    life, maxLife: life, fatigue: 20, fatigueMax: Number(creature.fatigue) || 20, speed: Number(creature.speed) || 0
   };
 }
 $("closeCreature").onclick = $("cancelCreature").onclick = () => $("creatureModal").classList.add("hidden");

@@ -26,7 +26,7 @@
   <aside class="sidebar">
     <section>
       <div class="sectionHead"><h3>🖼️ BIBLIOTECA</h3><span class="hint">Arraste para a mesa</span></div>
-      <button id="importImages" class="primary fullWidth">➕ Importar imagens</button>
+      <div class="buttonRow"><button id="createObject" class="primary">➕ Criar objeto</button><button id="importImages">🖼️ Importar imagem</button></div>
       <input id="imageFiles" type="file" accept="image/*" multiple hidden>
       <div class="tabs">
         <button class="tab active" data-lib="assets">Objetos</button>
@@ -106,7 +106,7 @@
         <button data-die="12">d12</button><button data-die="20" class="primary">d20</button><button data-die="100">d100</button>
       </div>
       <div class="twoCols exprRow"><input id="exprInput" placeholder="2d6+3"><button id="exprRoll">Rolar</button></div>
-      <div id="diceResult" class="diceResult">–</div>
+      <div id="diceResult" class="diceResult">–</div><div id="diceOverlay" class="diceOverlay hidden" aria-live="polite"></div>
       <div id="diceDetail" class="hint">Escolha um dado para rolar.</div>
       <div id="diceHistory" class="hint"></div>
     </div>
@@ -144,6 +144,27 @@
   </aside>
 </div>
 
+
+<!-- Criador de objetos -->
+<div id="objectModal" class="modal hidden">
+  <div class="dialog objectDialog">
+    <div class="dialogHead"><div><h2>🧰 Criar objeto</h2><p class="hint">Crie qualquer item: arma, chave, poção, tocha, equipamento etc.</p></div><button id="closeObject">✕</button></div>
+    <div class="portraitPicker">
+      <div class="portraitFrame"><img id="objectPreview" alt="Prévia do objeto"><span id="objectPlaceholder">📦 Objeto</span></div>
+      <label class="fileButton">🖼️ Escolher imagem<input id="o_image" type="file" accept="image/*"></label>
+      <small id="objectImageStatus" class="hint">A imagem é opcional. Sem imagem, o objeto usa um ícone.</small>
+    </div>
+    <div class="sheet">
+      <label>Nome<input id="o_name" placeholder="Ex.: Rifle de plasma"></label>
+      <label>Categoria<input id="o_category" placeholder="Ex.: Arma, Luz, Ferramenta"></label>
+      <label class="full">Descrição<textarea id="o_description" placeholder="O que esse objeto faz?"></textarea></label>
+    </div>
+    <div class="objectPropsHead"><b>⚙️ Propriedades</b><button id="addObjectProp" type="button">＋ Adicionar propriedade</button></div>
+    <div id="objectProps" class="objectProps"></div>
+    <div class="dialogFoot"><button id="cancelObject">Cancelar</button><button id="saveObject" class="primary">💾 Salvar objeto</button></div>
+  </div>
+</div>
+
 <!-- Ficha -->
 <div id="characterModal" class="modal hidden">
   <div class="dialog">
@@ -160,12 +181,15 @@
       </div></details>
       <details class="sheetGroup" open><summary>⚔ Estado e atributos</summary><div class="sheet sheetInner">
         <label>Vida atual<input id="c_life" type="number" value="100"></label><label>Vida máxima<input id="c_maxLife" type="number" value="100"></label>
-        <label>Cansaço atual<input id="c_fatigue" type="number" value="0"></label><label>Cansaço máximo<input id="c_fatigueMax" type="number" value="20"></label>
-        <label>Defesas<textarea id="c_defenses"></textarea></label><label>Porte<input id="c_build"></label>
-        <label>Força<input id="c_strength" type="number" value="0"></label><label>Velocidade<input id="c_speed" type="number" value="0"></label><label>Inteligência<input id="c_intelligence" type="number" value="0"></label>
+        <label>Cansaço atual<input id="c_fatigue" type="number" value="20" readonly></label><label>Cansaço máximo<input id="c_fatigueMax" type="number" value="20"></label><label class="full"><small class="hint">🔋 Ao criar a ficha, o cansaço começa automaticamente cheio. Depois o próprio jogador reduz manualmente conforme gastar.</small></label>
+        <label>Defesas<textarea id="c_defenses"></textarea></label><label>Porte / Presença<input id="c_build" type="number" value="0"></label>
+        <label>Força<input id="c_strength" type="number" value="0"></label><label>Velocidade / Agilidade<input id="c_speed" type="number" value="0"></label><label>Inteligência<input id="c_intelligence" type="number" value="0"></label>
+        <label>Vigor<input id="c_vigor" type="number" value="0"></label><label>Sorte<input id="c_luck" type="number" value="0"></label><label>Foco<input id="c_focus" type="number" value="0"></label>
+        <label class="full"><small class="hint">💡 Sugestão: Força, Velocidade/Agilidade, Inteligência, Porte/Presença, Vigor, Sorte e Foco. O mestre decide como cada um influencia os testes.</small></label>
       </div></details>
       <details class="sheetGroup"><summary>✧ Poderes, especialidades e história</summary><div class="sheet sheetInner">
-        <label class="full">Proficiências<textarea id="c_proficiencies"></textarea></label><label class="full">Focos de poder<textarea id="c_powers"></textarea></label>
+        <div class="full presetPanel"><b>🎯 Proficiências — orçamento máximo: 21 pontos (somente múltiplos de 3)</b><div id="proficiencyBudget" class="hint"></div><div id="proficiencyPreset" class="presetGrid"></div><input id="c_proficiencies" type="hidden"></div>
+        <div class="full presetPanel"><b>✨ Magias — até 10 pontos/seleções iniciais</b><div id="magicBudget" class="hint"></div><div id="magicPreset" class="presetGrid magicGrid"></div><input id="c_magics" type="hidden"><input id="c_magicPoints" type="hidden" value="10"></div><label class="full">Focos de poder<textarea id="c_powers" placeholder="Ex.: Combate físico — nível 1; Combate à distância — nível 2"></textarea></label>
         <label class="full">Pontos fracos<textarea id="c_weaknesses"></textarea></label><label class="full">História<textarea id="c_history" class="historyField"></textarea></label>
       </div></details>
     </div>

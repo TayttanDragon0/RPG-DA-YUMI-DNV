@@ -291,3 +291,17 @@ kbd{background:#313e52;padding:2px 5px;border-radius:4px}
   .diceButtons{grid-template-columns:repeat(4,minmax(0,1fr))}
   .diceButtons button{min-height:42px;font-size:14px!important}
 }
+.objectDialog{max-width:760px}
+.objectProps{display:grid;gap:7px;margin:10px 0;max-height:240px;overflow:auto}
+.objectPropRow{display:grid;grid-template-columns:1fr 1.5fr auto;gap:7px;align-items:center}
+.objectPropsHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.objectTokenIcon{display:flex!important;align-items:center;justify-content:center;width:100%;height:100%;font-size:42px;background:linear-gradient(135deg,#293449,#111827);border-radius:inherit}
+.objectDetails{margin-top:10px;padding:9px;background:#141c28;border:1px solid #303e52;border-radius:7px}
+.objectDetails h4{margin:0 0 6px}.objectDetails p{margin:4px 0}.objectDetails dl{margin:7px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:5px}.objectDetails dt{font-weight:700}.objectDetails dd{margin:0;opacity:.85}
+@media(max-width:600px){.objectPropRow{grid-template-columns:1fr 1fr auto}.objectPropsHead{align-items:flex-start;flex-direction:column}.objectDialog{width:min(96vw,760px)}}
+/* Dados animados: aparecem no centro e somem automaticamente */
+.diceOverlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:9999;background:rgba(5,8,15,.22);backdrop-filter:blur(1px)}
+.diceOverlay.hidden{display:none}.diceAnim{width:150px;height:150px;display:grid;place-items:center;font-size:58px;font-weight:900;color:#fff;background:linear-gradient(145deg,#384b70,#101827);border:4px solid #a9c7ff;border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:diceTumble 1.25s cubic-bezier(.15,.75,.2,1) both}.diceAnim.d4{clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0}.diceAnim.d12,.diceAnim.d20{border-radius:35%;transform:rotate(10deg)}.diceAnim.land{animation:diceLand .55s ease-out both}@keyframes diceTumble{0%{opacity:0;transform:translateY(-45vh) rotateX(0) rotateY(0) scale(.4)}18%{opacity:1}70%{transform:translateY(2vh) rotateX(980deg) rotateY(760deg) rotateZ(280deg) scale(1.12)}100%{transform:translateY(0) rotateX(1080deg) rotateY(900deg) rotateZ(360deg) scale(1)}}@keyframes diceLand{0%{transform:scale(1.15) rotate(8deg)}45%{transform:scale(.9) rotate(-4deg)}70%{transform:scale(1.06) rotate(2deg)}100%{transform:scale(1) rotate(0)}}.masterInventory{margin-top:12px;padding-top:8px;border-top:1px solid #303e52}.masterInventory h3{margin:4px 0 8px}.masterBagGrid{display:flex;gap:8px;flex-wrap:wrap}
+.presetPanel{border:1px solid var(--line,#334);border-radius:12px;padding:12px;background:rgba(255,255,255,.02)}
+.presetGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:7px;margin-top:10px;max-height:330px;overflow:auto;padding-right:4px}
+.presetItem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border:1px solid var(--line,#334);border-radius:9px;background:rgba(0,0,0,.12);font-size:.9rem}.presetItem select{width:76px}.presetItem input[type=checkbox]{width:auto}
