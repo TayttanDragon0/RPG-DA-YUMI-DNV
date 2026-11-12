@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Espaço Zero — Mesa de RPG</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="zero.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><i class="logoRing"></i><b>ESPAÇO ZERO</b><span>MESA VIRTUAL</span></div>
+  <div class="toolbar">
+    <button id="undoBtn" title="Desfazer (Ctrl+Z)">↶</button><button id="redoBtn" title="Refazer (Ctrl+Y)">↷</button><button id="playerWin" title="Abre a mesa do jogador em outra janela">🖥</button>
+    <button id="helpButton" title="Abrir tutorial">❔ Ajuda</button>
+    <button id="mobileLibraryToggle" class="mobileOnly" aria-expanded="false">☰ Biblioteca</button>
+    <button id="mobileInspectorToggle" class="mobileOnly" aria-expanded="false">🔎 Inspetor</button>
+    <button id="newCampaign">✨ Nova</button>
+    <button id="saveCampaign" class="primary">💾 Salvar arquivo</button>
+    <button id="loadCampaign">📂 Abrir arquivo</button>
+    <input id="campaignFile" type="file" accept=".json,.rpg" hidden>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <section>
+      <div class="sectionHead"><h3>🖼️ BIBLIOTECA</h3><span class="hint">Arraste para a mesa</span></div>
+      <button id="importImages" class="primary fullWidth">➕ Importar imagens</button>
+      <input id="imageFiles" type="file" accept="image/*" multiple hidden>
+      <div class="tabs">
+        <button class="tab active" data-lib="assets">Objetos</button>
+        <button class="tab" data-lib="characters">Personagens</button>
+        <button class="tab" data-lib="creatures">Bestiário</button>
+      </div>
+      <div id="libraryFilters" class="libraryFilters hidden">
+        <input id="librarySearch" type="search" placeholder="Pesquisar no bestiário…" aria-label="Pesquisar criaturas">
+        <select id="bestiaryCategory" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option></select>
+        <small id="bestiaryCount" class="hint"></small>
+      </div>
+      <div id="library" class="library"></div>
+    </section>
+
+    <section>
+      <div class="sectionHead"><h3>🎬 CENAS</h3></div>
+      <div class="buttonRow">
+        <button id="addScene">➕ Nova</button>
+        <button id="setBackground">🗺️ Cenário</button>
+      </div>
+      <input id="backgroundFile" type="file" accept="image/*" hidden>
+      <div id="sceneList" class="list"></div>
+    </section>
+
+    <section class="musicSection">
+      <div class="sectionHead"><h3>🎵 MÚSICA AMBIENTE</h3><span class="hint">MP3 / áudio</span></div>
+      <button id="addMusic" class="fullWidth">＋ Adicionar música</button>
+      <input id="musicFiles" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" multiple hidden>
+      <div id="musicList" class="musicList"></div>
+      <audio id="audioPlayer" controls preload="metadata"></audio>
+      <div class="musicControls">
+        <button id="prevTrack" title="Faixa anterior">⏮</button>
+        <button id="loopToggle" class="active" title="Repetir faixa">🔁 Loop: ligado</button>
+        <button id="nextTrack" title="Próxima faixa">⏭</button>
+      </div>
+      <label class="volumeLabel">Volume <input id="musicVolume" type="range" min="0" max="100" value="65"></label>
+      <p class="hint">As músicas são guardadas dentro do arquivo da campanha. Use arquivos MP3 compactados para não deixar o projeto pesado.</p>
+    </section>
+  </aside>
+
+  <main class="main">
+    <div class="boardbar">
+      <div><b id="sceneTitle">Cena Principal</b><small id="saveStatus">Tudo salvo em memória</small><span id="status">Pronto</span></div>
+      <div class="spacer"></div>
+      <button id="panMode" title="Ativar ferramenta mão">✋ Mover tela</button>
+      <button id="gridToggle" class="active" title="Mostrar/ocultar grade">▦ Grade</button>
+      <button id="snapToggle" title="Encaixar na grade ao arrastar (tecla G; Shift encaixa temporariamente)">🧲 Ímã</button>
+      <button id="rulerToggle" title="Medir distância (tecla M)">📏 Régua</button>
+      <button id="centerView" title="Centralizar mesa">🎯 Centralizar</button>
+      <button id="zoomOut">−</button><span id="zoomText">80%</span><button id="zoomIn">＋</button>
+    </div>
+    <div id="viewport">
+      <div id="world">
+        <div id="gridOverlay"></div>
+      </div>
+      <div id="empty">🧙‍♂️ Importe imagens, crie personagens e arraste-os para a mesa.</div>
+      <div id="cameraHint">Espaço + arrastar ou botão do meio/direito = mover a tela</div>
+    </div>
+  </main>
+
+  <aside class="inspector">
+    <h3>🔎 INSPETOR</h3>
+    <div id="inspectorContent" class="muted">Selecione um objeto, personagem ou cenário.</div>
+    <hr>
+    <h3>⚔ INICIATIVA</h3>
+    <div class="diceBox">
+      <div id="initRound" class="hint">Sem combate</div>
+      <div id="initList" class="initList"></div>
+      <div class="actionRow"><button id="initRollAll" title="d20 + Velocidade de cada personagem e criatura">🎲 Rolar todos</button><button id="initNext" class="primary">Próximo ▶</button><button id="initClear">Encerrar</button></div>
+    </div>
+    <hr>
+    <h3>🎲 DADOS</h3>
+    <div class="diceBox">
+      <div class="twoCols"><label>Qtd<input id="diceCount" type="number" min="1" max="50" value="1"></label><label>Bônus<input id="diceMod" type="number" value="0"></label></div>
+      <div class="diceButtons">
+        <button data-die="4">d4</button><button data-die="6">d6</button><button data-die="8">d8</button><button data-die="10">d10</button>
+        <button data-die="12">d12</button><button data-die="20" class="primary">d20</button><button data-die="100">d100</button>
+      </div>
+      <div class="twoCols exprRow"><input id="exprInput" placeholder="2d6+3"><button id="exprRoll">Rolar</button></div>
+      <div id="diceResult" class="diceResult">–</div>
+      <div id="diceDetail" class="hint">Escolha um dado para rolar.</div>
+      <div id="diceHistory" class="hint"></div>
+    </div>
+    <h3>🔍 TESTE DE PERÍCIA (OP)</h3>
+    <div class="diceBox">
+      <div class="twoCols"><label>Atributo<input id="opAttr" type="number" min="0" max="10" value="1"></label><label>Perícia<select id="opTrain"><option value="0">Destreinado +0</option><option value="5">Treinado +5</option><option value="10">Veterano +10</option><option value="15">Expert +15</option></select></label></div>
+      <div class="twoCols"><label>Outros bônus<input id="opBonus" type="number" value="0"></label><label>DT (opcional)<input id="opDT" type="number" placeholder="—"></label></div>
+      <button id="opRoll" class="primary fullWidth">Rolar teste</button>
+      <p class="hint">Rola 1d20 por ponto de atributo e fica com o maior. Atributo 0: 2d20, fica com o menor. Resultado aparece em Dados.</p>
+    </div>
+    <hr>
+    <h3>🌫️ NÉVOA DE GUERRA</h3>
+    <div class="diceBox">
+      <label class="checkLabel"><input id="fogOn" type="checkbox"> Ativar névoa nesta cena</label>
+      <div class="twoCols fogBtns"><button id="fogReveal">👁 Revelar</button><button id="fogCover">⬛ Cobrir</button><button id="fogRevealAll">Revelar tudo</button><button id="fogCoverAll">Cobrir tudo</button></div>
+      <label>Visão dos personagens (quadrados)<input id="fogVision" type="number" min="0" max="20" value="4"></label>
+      <label class="checkLabel"><input id="fogPlayer" type="checkbox"> Modo jogador (névoa opaca)</label>
+      <p class="hint">Escolha Revelar ou Cobrir e arraste na mesa. Use o modo jogador ao compartilhar a tela, para esconder o que está coberto. Esc sai da ferramenta.</p>
+    </div>
+    <hr>
+    <h3>⚙️ CAMPANHA</h3>
+    <label>Nome da campanha<input id="campaignName" value="Minha Campanha"></label>
+    <div class="tipsBox">
+      <b>Atalhos</b>
+      <p><kbd>Espaço</kbd> + arrastar: mover tela</p>
+      <p><kbd>←↑↓→</kbd>: mover seleção (<kbd>Shift</kbd> = 1 quadrado)</p>
+      <p><kbd>Shift</kbd> ao arrastar: encaixar na grade</p>
+      <p><kbd>F</kbd> espelhar · <kbd>Q</kbd>/<kbd>R</kbd> girar</p>
+      <p><kbd>G</kbd> ímã · <kbd>M</kbd> régua · <kbd>Esc</kbd> limpar</p>
+      <p><kbd>Delete</kbd>: excluir seleção</p>
+      <p><kbd>Ctrl</kbd> + <kbd>D</kbd>: duplicar objeto</p>
+      <p>Duplo clique no personagem: abrir ficha</p>
+    </div>
+    <p class="hint">💡 Para jogar, compartilhe a tela pelo Discord, Meet ou outro programa. A campanha fica no arquivo que você salvar.</p>
+  </aside>
+</div>
+
+<!-- Ficha -->
+<div id="characterModal" class="modal hidden">
+  <div class="dialog">
+    <div class="dialogHead"><div><h2>📋 Ficha de Personagem</h2><p class="hint">O sprite é obrigatório. Ao salvar, o personagem entra automaticamente na mesa.</p></div><button id="closeCharacter">✕</button></div>
+    <div class="portraitPicker">
+      <div class="portraitFrame"><img id="portraitPreview" alt="Prévia do sprite"><span id="portraitPlaceholder">🧍 Sprite do personagem</span></div>
+      <label class="fileButton">🖼️ Escolher sprite<input id="c_portrait" type="file" accept="image/*"></label>
+      <small id="portraitStatus" class="hint">Selecione a imagem que será usada como token na mesa.</small>
+    </div>
+    <div class="sheet sheetSections">
+      <details class="sheetGroup" open><summary>✦ Identidade e descrição</summary><div class="sheet sheetInner">
+        <label>Nome<input id="c_name" required></label><label>Tipo de Universo<input id="c_universe"></label>
+        <label class="full">Aparência<textarea id="c_appearance"></textarea></label><label>Arma inicial<input id="c_weapon"></label><label>Personalidade<textarea id="c_personality"></textarea></label>
+      </div></details>
+      <details class="sheetGroup" open><summary>⚔ Estado e atributos</summary><div class="sheet sheetInner">
+        <label>Vida atual<input id="c_life" type="number" value="100"></label><label>Vida máxima<input id="c_maxLife" type="number" value="100"></label>
+        <label>Cansaço atual<input id="c_fatigue" type="number" value="0"></label><label>Cansaço máximo<input id="c_fatigueMax" type="number" value="20"></label>
+        <label>Defesas<textarea id="c_defenses"></textarea></label><label>Porte<input id="c_build"></label>
+        <label>Força<input id="c_strength" type="number" value="0"></label><label>Velocidade<input id="c_speed" type="number" value="0"></label><label>Inteligência<input id="c_intelligence" type="number" value="0"></label>
+      </div></details>
+      <details class="sheetGroup"><summary>✧ Poderes, especialidades e história</summary><div class="sheet sheetInner">
+        <label class="full">Proficiências<textarea id="c_proficiencies"></textarea></label><label class="full">Focos de poder<textarea id="c_powers"></textarea></label>
+        <label class="full">Pontos fracos<textarea id="c_weaknesses"></textarea></label><label class="full">História<textarea id="c_history" class="historyField"></textarea></label>
+      </div></details>
+    </div>
+    <div class="dialogActions">
+      <button id="deleteCharacter" class="danger hidden">🗑️ Excluir personagem</button>
+      <div class="spacer"></div>
+      <button id="cancelCharacter">Cancelar</button>
+      <button id="saveCharacter" class="primary">💾 Salvar e colocar na mesa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ficha de criatura (baseada em "Criaturas do espaço zero") -->
+<div id="creatureModal" class="modal hidden">
+  <div class="dialog">
+    <div class="dialogHead"><div><h2>📖 Ficha de Criatura</h2><p class="hint">Modelo do bestiário. Cada token na mesa tem sua própria vida e cansaço.</p></div><button id="closeCreature">✕</button></div>
+    <div class="portraitPicker">
+      <div class="portraitFrame"><img id="creaturePreview" alt="Prévia"><span>🐾 Sprite (opcional)</span></div>
+      <label class="fileButton">🖼️ Escolher sprite<input id="k_sprite" type="file" accept="image/*"></label>
+      <small class="hint">Sem imagem, uma arte padrão é usada.</small>
+    </div>
+    <div class="sheet sheetSections">
+      <details class="sheetGroup" open><summary>✦ Identificação</summary><div class="sheet sheetInner">
+        <label>Nome<input id="k_name"></label><label>Grupo / tipo<input id="k_category" placeholder="Ex.: Monstros da Corrupção — Racionais"></label>
+      </div></details>
+      <details class="sheetGroup" open><summary>📖 Enciclopédia</summary><div class="sheet sheetInner">
+        <label class="full">Características físicas<textarea id="k_fisicas"></textarea></label><label class="full">Comportamento<textarea id="k_comportamento"></textarea></label>
+        <label class="full">Onde vivem<textarea id="k_onde"></textarea></label><label class="full">Poderes<textarea id="k_poderes"></textarea></label>
+        <label class="full">Necessidades<textarea id="k_necessidades"></textarea></label><label class="full">Utilidades<textarea id="k_utilidades"></textarea></label><label class="full">Curiosidade<textarea id="k_curiosidade"></textarea></label>
+      </div></details>
+      <details class="sheetGroup" open><summary>⚔ Estatísticas de jogo</summary><div class="sheet sheetInner">
+        <label>Vida<input id="k_life" type="number" value="0"></label><label>Cansaço (limite)<input id="k_fatigue" type="number" value="0"></label>
+        <label>Defesas<input id="k_defenses" type="number" value="0"></label><label>Porte<input id="k_build" type="number" value="0"></label>
+        <label>Força<input id="k_strength" type="number" value="0"></label><label>Velocidade<input id="k_speed" type="number" value="0"></label>
+        <label>Inteligência<input id="k_intelligence" type="number" value="0"></label><label>Cor do aro<input id="k_color" type="color" value="#c25b6b"></label>
+      </div></details>
+    </div>
+    <div class="dialogActions">
+      <button id="deleteCreature" class="danger hidden">🗑️ Excluir</button>
+      <button id="duplicateCreature" class="hidden">📑 Duplicar</button>
+      <div class="spacer"></div>
+      <button id="cancelCreature">Cancelar</button>
+      <button id="saveCreature">💾 Salvar</button>
+      <button id="placeCreature" class="primary">Salvar e colocar na mesa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial de primeira abertura -->
+<div id="tutorialModal" class="modal tutorialModal hidden">
+  <div class="tutorialCard">
+    <div class="tutorialBadge">COMECE POR AQUI</div>
+    <h1>Bem-vindo ao <b class="zeroTitle">ESPAÇO ZERO</b></h1>
+    <p class="tutorialIntro">Monte cenários, coloque tokens, crie fichas e controle a trilha sonora. Tudo fica salvo em um arquivo no seu computador.</p>
+    <div class="tutorialSteps">
+      <div><b>1. Importe imagens</b><span>Adicione mapas, cenários, monstros e objetos na Biblioteca.</span></div>
+      <div><b>2. Crie personagens</b><span>Escolha um sprite obrigatório. Ao salvar, o token aparece automaticamente na mesa.</span></div>
+      <div><b>3. Navegue pela mesa</b><span>Arraste o espaço vazio para mover. Use Espaço + arrastar ou o botão Mover tela em qualquer lugar.</span></div>
+      <div><b>4. Ajuste o cenário</b><span>Clique no cenário para mover e redimensionar pelos cantos. Configure tamanho no Inspetor.</span></div>
+      <div><b>5. Coloque música</b><span>Adicione MP3, escolha uma faixa, use os controles de áudio e ative o loop.</span></div>
+      <div><b>6. Salve a campanha</b><span>Use Salvar arquivo. Imagens, sprites, cenas, fichas e músicas vão dentro do arquivo .rpg.json.</span></div>
+    </div>
+    <div class="tutorialFooter">
+      <label class="checkLabel"><input id="skipTutorial" type="checkbox"> Não mostrar novamente neste navegador</label>
+      <div class="spacer"></div>
+      <button id="closeTutorial" class="primary">Vamos começar!</button>
+    </div>
+  </div>
+</div>
+
+<script src="bestiario.js"></script>
+<script src="app.js"></script>
+<script src="zero.js"></script>
+<script src="extras.js"></script>
+<script src="mesa2.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="online.js"></script>
+</body>
+</html>
