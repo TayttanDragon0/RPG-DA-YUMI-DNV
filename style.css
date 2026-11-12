@@ -305,3 +305,85 @@ kbd{background:#313e52;padding:2px 5px;border-radius:4px}
 .presetPanel{border:1px solid var(--line,#334);border-radius:12px;padding:12px;background:rgba(255,255,255,.02)}
 .presetGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:7px;margin-top:10px;max-height:330px;overflow:auto;padding-right:4px}
 .presetItem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border:1px solid var(--line,#334);border-radius:9px;background:rgba(0,0,0,.12);font-size:.9rem}.presetItem select{width:76px}.presetItem input[type=checkbox]{width:auto}
+
+/* V17 — ferramentas de mestre e ficha jogável */
+.masterToolsPanel{position:fixed;z-index:1500;top:72px;right:18px;width:min(470px,calc(100vw - 36px));max-height:calc(100vh - 92px);overflow:auto;padding:16px;background:#111824;border:1px solid #38465c;border-radius:16px;box-shadow:0 24px 80px #000b;color:#e8edf8}
+.masterToolsHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.masterToolsHead h2{margin:0 0 4px;font-size:18px}
+.masterToolsHead p{margin:0}
+.gmTabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 16px}
+.gmTabs button{flex:1;min-width:105px}
+.gmTabs button.active{border-color:#7e9ce8;background:#253653;color:#fff}
+.gmPane h3{font-size:14px;margin:15px 0 8px}
+.gmPane>label{display:block;margin:9px 0}
+.gmPane textarea{min-height:62px;resize:vertical}
+.gmClock{margin:13px 0;padding:12px;background:#0b111b;border:1px solid #2d3a4c;border-radius:10px;display:grid;gap:8px}
+.gmClock strong{font-size:20px;font-variant-numeric:tabular-nums}
+.gmProgress{height:9px;background:#273447;border-radius:99px;overflow:hidden}
+.gmProgress i{display:block;height:100%;width:0;background:#83a8f4;border-radius:99px;transition:width .2s ease}
+.gmProgress.threat i{background:#c66b76}
+.gmClueList,.gmInterludeList{display:grid;gap:9px;margin-top:14px}
+.gmClueCard,.gmInterludeCard{padding:11px;background:#0c131e;border:1px solid #2d3a4b;border-radius:10px;min-width:0}
+.gmClueTitle{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gmClueTitle b{overflow-wrap:anywhere}
+.gmClueCard p{white-space:pre-wrap;margin:7px 0;font-size:13px;color:#c5cede}
+.gmClueCard small,.gmActionEntry small{display:block;color:#9daac0;margin-top:4px}
+.gmClueStatus{font-size:10px;border-radius:99px;padding:3px 7px;background:#303949;color:#d2d9e7;white-space:normal}
+.gmClueStatus.public{background:#214b3c;color:#b9f5d4}
+.gmClueStatus.shared{background:#34496d;color:#cbdcff}
+.gmClueActions{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.gmClueActions select{flex:1;min-width:130px}
+.gmClueActions button{font-size:11px;padding:6px 8px}
+.gmActionEntry{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #293447;font-size:13px}
+.gmActionEntry button{flex:none;padding:3px 8px}
+.gmEnigmaBox{margin-top:14px}
+.gmEnigmaBox>label{display:block;margin:8px 0}
+.magicPresetItem{align-items:flex-start}
+.magicPresetItem span{display:flex;flex-direction:column;gap:2px}
+.magicPresetItem small{font-size:10px;color:#8fa2bd}
+.fatigueDirect{display:flex;gap:8px;align-items:flex-end;margin-top:9px}
+.fatigueDirect label{flex:1;font-size:12px;color:#b9c4d6}
+.fatigueDirect button{white-space:nowrap}
+.playerUrgency{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;margin:8px 0;background:#273c5c;border-radius:8px}
+.playerClue{padding:9px;margin:8px 0;background:#101a28;border:1px solid #35465e;border-radius:8px}
+.playerClue small{display:block;color:#9cacc4;margin-top:4px}
+.playerClue p{font-size:12px;white-space:pre-wrap;margin:6px 0 0;color:#d1d9e6}
+.playerMasterHud{position:fixed;z-index:1200;right:14px;bottom:14px;width:min(340px,calc(100vw - 28px));max-height:45vh;overflow:auto;background:#111824;color:#e8edf8;border:1px solid #43516a;border-radius:12px;box-shadow:0 12px 38px #0009;padding:10px}
+.playerMasterHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#playerMasterBody{max-height:36vh;overflow:auto}
+@media(max-width:680px){
+  .masterToolsPanel{top:calc(var(--mobile-header-h,60px) + 8px);right:8px;width:calc(100vw - 16px);max-height:calc(100vh - var(--mobile-header-h,60px) - 18px);padding:12px}
+  .gmTabs button{min-width:86px;font-size:11px;padding:7px 6px}
+  .gmClueActions button{flex:1}
+  .fatigueDirect{align-items:stretch}
+}
+
+/* V17.1 — cartões extras das ferramentas do mestre */
+.gmClockList{display:grid;gap:10px;margin:12px 0}
+.gmClockCard{padding:11px;background:#0c131e;border:1px solid #39485f;border-radius:11px;min-width:0}
+.gmClockFields{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:8px}
+.gmClockFields label,.gmClockCard>label{display:block;font-size:12px;color:#afbdd2}
+.gmClockFields input,.gmClockCard textarea{width:100%;margin-top:4px}
+.gmClockCard textarea{min-height:52px;resize:vertical}
+.gmClockTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gmClockTop span{font-size:11px;color:#9eabc0}
+.gmClockComplete{margin:6px 0 0;color:#f4c978;font-size:12px}
+.gmClockNew{padding:11px;border:1px dashed #465875;border-radius:10px;background:#0a111b}
+.gmRoundHead{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;margin:9px 0;background:#19263a;border:1px solid #344966;border-radius:9px}
+.gmRoundHead strong{font-size:20px;font-variant-numeric:tabular-nums;color:#f3d28a}
+.gmInvestigationList,.gmReactionList{display:grid;gap:7px;margin:10px 0}
+.gmInvestigationRow,.gmReactionRow{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px 10px;background:#0c131e;border:1px solid #2d3a4b;border-radius:9px}
+.gmInvestigationRow>div,.gmReactionRow>span{min-width:0;display:flex;flex-direction:column;gap:3px}
+.gmInvestigationRow small,.gmReactionRow small{font-size:11px;color:#9daac0;overflow-wrap:anywhere}
+.gmInvestigationRow p{margin:4px 0 0;font-size:12px;white-space:pre-wrap;color:#c5cede}
+.gmReactionRow button{min-width:116px;font-size:11px;padding:7px 8px}
+.gmInvestigationHistory{display:grid;gap:3px;max-height:100px;overflow:auto;margin:7px 0 12px;padding:7px;background:#0b111b;border-radius:7px}
+.gmInvestigationHistory small{font-size:10px;color:#93a2b8}
+.gmClueType{display:inline-block;margin:5px 6px 0 0;padding:2px 6px;border-radius:5px;background:#29364c;color:#c8d7f4;font-size:10px}
+.budgetWarning{color:#ff9b9b!important}
+@media(max-width:680px){
+  .gmClockFields{grid-template-columns:minmax(0,1fr) 76px}
+  .gmReactionRow button{min-width:105px}
+  .gmTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .gmTabs button{min-width:0}
+}

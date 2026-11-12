@@ -44,7 +44,11 @@ $("saveCampaign").onclick = async () => {
 let pw = null;
 function pushPlayer() {
   if (!pw || pw.closed) return; const s = scene();
-  pw.postMessage({ zero: 1, scene: s, fresh: lastScene !== s.id }, "*"); lastScene = s.id;
+  // Não enviar dados privados do mestre para a janela compartilhada.
+  const publicScene = { ...s }; delete publicScene.gmTools;
+  pw.postMessage({ zero: 1, scene: publicScene, fresh: lastScene !== s.id,
+    clues: window.zeroPublicClues?.() || [], urgency: window.zeroPublicUrgency?.() || null }, "*");
+  lastScene = s.id;
 }
 if (P) {
   document.body.classList.add("player"); document.title = "Espaço Zero — Mesa";

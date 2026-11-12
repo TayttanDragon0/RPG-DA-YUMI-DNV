@@ -112,3 +112,29 @@ Compartilhe a tela pelo Discord, Meet ou outra ferramenta. A aplicação funcion
 - Proficiências continuam separadas dos atributos, conforme o documento do sistema.
 - Focos de poder ficam como progressão/especialização própria (físico, distância ou mágico), em vez de serem confundidos com atributo.
 - O modelo foi inspirado em boas ideias de fichas de RPG investigativo, mas mantém o sistema próprio do Espaço Zero.
+
+
+# ESPAÇO ZERO V17 — correções e ferramentas do mestre
+
+## Correções de ficha
+- Proficiências são presets fixos, com valores em múltiplos de 3 e orçamento de 21 no nível 1. Cada nível de personagem acima do primeiro acrescenta 6 pontos, conforme o documento do sistema.
+- A seleção de proficiência agora verifica o orçamento antes de aplicar a mudança; ao exceder, mantém o valor anterior em vez de zerar a proficiência alterada.
+- Magias usam espaços individuais. O documento lista custos de Cansaço em múltiplos de 3 e espaços +2/+4/+6/+8/+10/+14; a ficha relaciona os valores pela proporção 2 espaços a cada 3 de Cansaço. Assim, magias com custo 12 ocupam 8 espaços, por exemplo.
+- Foco mágico começa com 10 espaços e recebe +3 por nível do foco. Focos físico e à distância ficam identificados separadamente.
+- O player pode definir diretamente o Cansaço atual, além de usar os botões de gasto/recuperação. Personagem novo começa com a barra cheia; campanhas antigas sem valor atual de Cansaço são migradas para cheia.
+- A ficha compartilhada agora exibe atributos, proficiências e magias em formato legível, em vez do JSON bruto.
+
+## Ferramentas do mestre
+- **Controle de cena:** classifique a cena como Investigação, Ação/Combate, Interação ou Interlúdio e mantenha anotações privadas por cena.
+- **Ações de investigação:** registre uma ação por personagem em cada rodada (buscar pistas, ajudar, facilitar a investigação, usar habilidade/item ou outra abordagem). O histórico recente fica visível para o mestre.
+- **Urgência:** contador de rodadas com limite configurável, presets rápidos e consequência privada. O mestre escolhe se o progresso aparece na janela dos jogadores.
+- **Relógios múltiplos:** crie marcadores independentes para ritual, perseguição, alarme, corrupção, chegada de reforços ou outros eventos; cada relógio tem limite e consequência próprios.
+- **Quadro de pistas:** diferencie pistas principais e complementares, associe perícia/abordagem e DT, e revele cada pista para um personagem ou para todos. O jogador recebe apenas pistas liberadas para ele.
+- **Reações de combate:** marcador opcional por combatente com iniciativa. Ao passar para uma nova rodada de combate, as reações são liberadas automaticamente; também há reinício manual.
+- **Interlúdio:** registre até duas ações diferentes por personagem e remova uma ação caso precise corrigir o registro.
+- **Enigma/segredo da criatura:** anotações privadas do mestre no Inspetor, com solução, efeito e estado de resolução.
+- **Privacidade:** notas da cena, consequências, relógios e soluções de enigmas não são enviados aos jogadores. A janela espelhada recebe só pistas públicas e contador de urgência explicitamente liberado.
+
+## Referência de design
+- O conjunto é opcional e adaptado à mesa Espaço Zero. As ideias de cenas, investigação rodada a rodada, urgência, pistas principais/complementares, ações de interlúdio e reações foram pesquisadas a partir das regras públicas de Ordem Paranormal RPG; não é uma reprodução do sistema oficial de Calamidade.
+- O documento de Espaço Zero não associa explicitamente cada espaço +2/+4/+6/+8/+10/+14 a uma magia por nome. A ficha relaciona esses espaços aos custos de Cansaço por proporção (2 espaços a cada 3 de Cansaço: 3→2, 6→4, 9→6, 12→8, 15→10, 21→14). Isso é uma interpretação prática, indicada na ficha para a mesa poder ajustar se usar outra regra.

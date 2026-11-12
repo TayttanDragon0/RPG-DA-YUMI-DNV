@@ -1,7 +1,8 @@
 const $ = id => document.getElementById(id);
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-let state = blankState();
+let state;
+
 let selected = null;
 let editingCharacter = null;
 let pendingPortrait = "";
@@ -33,7 +34,27 @@ function worldPoint(event) {
   return { x: (event.clientX - rect.left - panX) / zoom, y: (event.clientY - rect.top - panY) / zoom };
 }
 function imgTransform(t) {
-  return `transform:rotate(${Number(t.rot) || 0}deg) scaleX(${t.flip ? -1 : 1})`;
+  // rot = ajuste manual do mestre; facingRot = direção automática do deslocamento.
+  const manual = Number(t.rot) || 0;
+  const facing = Number(t.facingRot) || 0;
+  return `transform:rotate(${manual + facing}deg) scaleX(${t.flip ? -1 : 1})`;
+}
+
+function normalizeAngle(deg) {
+  deg %= 360;
+  return deg < 0 ? deg + 360 : deg;
+}
+function shortestAngle(from, to) {
+  return ((to - from + 540) % 360) - 180;
+}
+function updateTokenFacing(token, dx, dy) {
+  // Sprites são considerados voltados para cima por padrão.
+  if (Math.hypot(dx, dy) < 0.75) return;
+  const target = normalizeAngle(Math.atan2(dy, dx) * 180 / Math.PI + 90);
+  const current = normalizeAngle(Number(token.facingRot) || 0);
+  // Aproxima gradualmente para evitar uma virada brusca ao arrastar.
+  const step = shortestAngle(current, target) * 0.22;
+  token.facingRot = normalizeAngle(current + step);
 }
 
 function objectIconSvg(icon = "📦") {
@@ -73,6 +94,9 @@ function blankState() {
     }]
   };
 }
+
+// Inicializa depois das constantes usadas pela campanha (incluindo a tocha embutida).
+state = blankState();
 
 const scene = () => state.scenes.find(s => s.id === state.active) || state.scenes[0];
 const fileData = file => new Promise((resolve, reject) => {
@@ -127,6 +151,22 @@ function normalizeState(loaded) {
   result.version = 9;
   result.assets = ensureBuiltInAssets(Array.isArray(loaded.assets) ? loaded.assets : []);
   result.characters = Array.isArray(loaded.characters) ? loaded.characters : [];
+  result.characters.forEach(c => {
+    c.level = clamp(Math.floor(Number(c.level) || 1), 1, 99);
+    c.focusLevel = clamp(Math.floor(Number(c.focusLevel) || 1), 1, 99);
+    if (!c.focusType) {
+      let oldMagicList = [];
+      try { const parsed = typeof c.magics === "string" ? JSON.parse(c.magics || "[]") : c.magics; oldMagicList = Array.isArray(parsed) ? parsed : []; } catch {}
+      c.focusType = oldMagicList.length ? "magico" : "";
+    }
+    c.fatigueMax = Math.max(1, Number(c.fatigueMax ?? c.maxFatigue) || 20);
+    c.fatigue = c.fatigue == null || !Number.isFinite(Number(c.fatigue)) ? c.fatigueMax : clamp(Number(c.fatigue), 0, c.fatigueMax);
+    c.maxLife = Math.max(1, Number(c.maxLife ?? c.life) || 100);
+    c.life = clamp(Number(c.life ?? c.maxLife) || 0, 0, c.maxLife);
+    if (c.proficiencies == null) c.proficiencies = "{}";
+    if (c.magics == null) c.magics = "[]";
+    c.magicPoints = c.focusType === "magico" ? 10 + 3 * (c.focusLevel - 1) : 0;
+  });
   result.bestiary = Array.isArray(loaded.bestiary) ? loaded.bestiary : seedBestiary();
   result.musicTracks = Array.isArray(loaded.musicTracks) ? loaded.musicTracks : [];
   result.scenes = Array.isArray(loaded.scenes) && loaded.scenes.length ? loaded.scenes : base.scenes;
@@ -302,8 +342,8 @@ function ensureVitals(o) {
   o.life = Number(o.life) || 0;
   if (o.maxLife == null || !Number.isFinite(Number(o.maxLife))) o.maxLife = Math.max(o.life, 1);
   if (o.fatigueMax == null && o.maxFatigue == null) o.fatigueMax = 20;
-  o.fatigueMax = Number(o.fatigueMax ?? o.maxFatigue) || 20;
-  o.fatigue = Number(o.fatigue) || 0;
+  o.fatigueMax = Math.max(1, Number(o.fatigueMax ?? o.maxFatigue) || 20);
+  o.fatigue = o.fatigue == null || !Number.isFinite(Number(o.fatigue)) ? o.fatigueMax : clamp(Number(o.fatigue), 0, o.fatigueMax);
   return o;
 }
 function isDead(token) {
@@ -641,12 +681,16 @@ function startTokenDrag(event, token, element) {
   let moved = false;
   trackDrag(event, e => {
     moved = true;
+    const prevX = token.x, prevY = token.y;
     token.x = ox + (e.clientX - sx) / zoom;
     token.y = oy + (e.clientY - sy) / zoom;
     if (snapOn || e.shiftKey) { token.x = snapValue(token.x); token.y = snapValue(token.y); }
     clampToken(token);
+    updateTokenFacing(token, token.x - prevX, token.y - prevY);
     element.style.left = `${token.x}px`;
     element.style.top = `${token.y}px`;
+    const img = element.querySelector("img");
+    if (img) img.style.transform = `rotate(${(Number(token.rot)||0) + (Number(token.facingRot)||0)}deg) scaleX(${token.flip ? -1 : 1})`;
     syncPositionInputs(token);
   }, () => { if (moved) markDirty("Objeto movido"); });
 }
@@ -703,6 +747,7 @@ function renderInspector() {
         <button id="flipToken" title="Tecla F">↔ Espelhar</button>
         <button id="rotLeft" title="Tecla Q">⟲ 15°</button>
         <button id="rotRight" title="Tecla R">⟳ 15°</button>
+        <button id="resetFacing" title="Voltar a direção padrão">🧭 Reset direção</button>
       </div>
       ${vitalsHtml(token)}
       <div class="twoCols"><label>Iniciativa<input id="inspectInit" type="number" value="${Number.isFinite(token.init) ? token.init : ""}" placeholder="—"></label><label>&nbsp;<button id="rollInit" class="fullWidth" title="d20 + Velocidade">🎲 d20+Vel</button></label></div>
@@ -730,6 +775,7 @@ function renderInspector() {
     $("flipToken").onclick = () => flipSelected();
     $("rotLeft").onclick = () => rotateSelected(-15);
     $("rotRight").onclick = () => rotateSelected(15);
+    $("resetFacing").onclick = () => { token.facingRot = 0; markDirty("Direção reiniciada"); renderScene(); renderInspector(); };
     box.querySelectorAll("[data-vital]").forEach(btn => btn.onclick = () => adjustVital(token, btn.dataset.vital, Number(btn.dataset.delta)));
     $("inspectInit").onchange = e => { token.init = e.target.value === "" ? undefined : Number(e.target.value); renderWorld(); markDirty("Iniciativa alterada"); };
     $("rollInit").onclick = () => { rollTokenInitiative(token); renderInspector(); renderWorld(); markDirty("Iniciativa rolada"); };
@@ -1127,35 +1173,122 @@ $("backgroundFile").onchange = async event => {
 };
 
 // Character sheet: sprite mandatory; new character automatically gets a token.
-const characterFields = ["name","universe","appearance","weapon","personality","life","fatigue","maxLife","fatigueMax","defenses","strength","speed","intelligence","build","vigor","luck","focus","proficiencies","magics","magicPoints","powers","weaknesses","history"];
+const characterFields = ["name","universe","appearance","weapon","personality","level","life","fatigue","maxLife","fatigueMax","defenses","strength","speed","intelligence","build","vigor","luck","focus","proficiencies","magics","magicPoints","focusType","focusLevel","powers","weaknesses","history"];
 const PROFICIENCIES_PRESET = ["Mirar (arma branca)","Mirar (arma de fogo/magia)","Recuperação de dados","Flexibilidade","Reflexo","Sorte","Lábia","Sexto sentido","Preparação","Tecnologia","Carisma","Cura","Furtividade","Luta","Intimidação","Durabilidade","Determinação","Fuga"];
-const MAGICS_PRESET = ["Arrombar tranca","Controle de água, terra, fogo e ar","Controle de gravidade","Fúria divina","Dança sombria","Ilusões","Criar portais","Chuva de prata","Sopro de esperança","Dívida da alma","Verdade ilusória","Luz do fim","Carcará","Construção","Consertar","Detectar ameaças","Vozes","Mira divina","Falsa impressão","Favor cobrado","Neblina","Mãos mansas","Veneno","Ácido","Bússola da saudade","Descansar","Mundo estranho","Correntes gêmeas","Vampiro","Controle único","Provocação","Cura","Regeneração","Xeque-Mate","Absorção"];
-function parseProfs(v){ try{return JSON.parse(v||"{}")}catch{return {}} }
-function parseMagics(v){ try{return JSON.parse(v||"[]")}catch{return []} }
+// O documento lista as ocupações +2/+4/+6/+8/+10/+14 e, junto a cada magia,
+// o custo de cansaço 3/6/9/12/15/21. A correspondência é 2 pontos de espaço
+// para cada 3 de cansaço. Mantemos os dois valores explícitos para a ficha.
+const MAGICS_PRESET = [
+  ["Arrombar tranca",6], ["Controle de água, terra, fogo e ar",9], ["Controle de gravidade",12],
+  ["Fúria divina",12], ["Dança sombria",12], ["Ilusões",9], ["Criar portais",9],
+  ["Chuva de prata",15], ["Sopro de esperança",15], ["Dívida da alma",12],
+  ["Verdade ilusória",12], ["Luz do fim",3], ["Carcará",12], ["Construção",21],
+  ["Consertar",9], ["Detectar ameaças",9], ["Vozes",9], ["Mira divina",12],
+  ["Falsa impressão",12], ["Favor cobrado",15], ["Neblina",3], ["Mãos mansas",3],
+  ["Veneno",3], ["Ácido",3], ["Bússola da saudade",9], ["Descansar",3],
+  ["Mundo estranho",9], ["Correntes gêmeas",12], ["Vampiro",15], ["Controle único",9],
+  ["Provocação",6], ["Cura",6], ["Regeneração",6], ["Xeque-Mate",15], ["Absorção",6]
+].map(([name, fatigue]) => ({ name, fatigue, points: Math.round(fatigue * 2 / 3) }));
+function parseProfs(v){ try { const o=typeof v === "string" ? JSON.parse(v || "{}") : v; return o && typeof o === "object" && !Array.isArray(o) ? o : {}; } catch { return {}; } }
+function parseMagics(v){
+  try {
+    const a = typeof v === "string" ? JSON.parse(v || "[]") : v;
+    return Array.isArray(a) ? [...new Set(a.map(x => typeof x === "string" ? x : x?.name).filter(x => typeof x === "string" && x.trim()).map(x => x.trim()))] : [];
+  } catch { return []; }
+}
+function characterLevel(){ return clamp(Math.floor(Number($("c_level")?.value) || 1), 1, 99); }
+function focusLevel(){ return clamp(Math.floor(Number($("c_focusLevel")?.value) || 1), 1, 99); }
+function proficiencyBudget(){ return 21 + 6 * (characterLevel() - 1); }
+function magicBudget(){ return $("c_focusType")?.value === "magico" ? 10 + 3 * (focusLevel() - 1) : 0; }
+function magicPointsUsed(names){ const selected = new Set(names); return MAGICS_PRESET.reduce((sum, m) => sum + (selected.has(m.name) ? m.points : 0), 0); }
+function formatProficiencies(value){
+  const p = parseProfs(value);
+  return PROFICIENCIES_PRESET.filter(n => Number(p[n]) > 0).map(n => `${n} +${Number(p[n])}`).join(", ") || "Nenhuma";
+}
+function formatMagics(value){
+  const names = parseMagics(value);
+  return names.map(n => { const m = MAGICS_PRESET.find(x => x.name === n); return m ? `${m.name} (${m.points} espaços · ${m.fatigue} cansaço)` : n; }).join(", ") || "Nenhuma";
+}
 function renderCharacterPresets(){
   const prof = parseProfs($("c_proficiencies").value), magic = parseMagics($("c_magics").value);
-  const used = Object.values(prof).reduce((a,b)=>a+(Number(b)||0),0), remain=21-used;
-  $("proficiencyBudget").textContent=`Usados: ${used}/21 • Restam: ${remain} • cada valor: 0, 3, 6...`;
-  $("proficiencyPreset").innerHTML=PROFICIENCIES_PRESET.map(n=>`<label class="presetItem"><span>${n}</span><select data-prof="${n}">${[0,3,6,9,12,15,18,21].map(x=>`<option value="${x}" ${Number(prof[n]||0)===x?'selected':''}>${x||'—'}</option>`).join('')}</select></label>`).join('');
-  $("proficiencyPreset").querySelectorAll('select').forEach(el=>el.onchange=()=>{ const p=parseProfs($("c_proficiencies").value); p[el.dataset.prof]=Number(el.value); const total=Object.values(p).reduce((a,b)=>a+(Number(b)||0),0); if(total>21){ alert("O total de proficiências não pode passar de 21 pontos."); p[el.dataset.prof]=0; } $("c_proficiencies").value=JSON.stringify(p); renderCharacterPresets(); });
-  const limit=Math.max(0,Number($("c_magicPoints").value)||10);
-  $("magicBudget").textContent=`Selecionadas: ${magic.length}/${limit} • no início você pode ter no máximo ${limit} magias/pontos.`;
-  $("magicPreset").innerHTML=MAGICS_PRESET.map(n=>`<label class="presetItem"><input type="checkbox" data-magic="${n}" ${magic.includes(n)?'checked':''}> <span>${n}</span></label>`).join('');
-  $("magicPreset").querySelectorAll('input').forEach(el=>el.onchange=()=>{ let m=parseMagics($("c_magics").value); if(el.checked){ if(m.length>=limit){ alert(`Limite de ${limit} magias/pontos iniciais atingido.`); el.checked=false; return; } m.push(el.dataset.magic); } else m=m.filter(x=>x!==el.dataset.magic); $("c_magics").value=JSON.stringify(m); renderCharacterPresets(); });
+  const budget = proficiencyBudget();
+  const used = PROFICIENCIES_PRESET.reduce((a,n)=>a+(Math.max(0, Number(prof[n]) || 0)),0);
+  const remain = budget - used;
+  $("proficiencyBudget").textContent = `Usados: ${used}/${budget} • Restam: ${remain} • distribuição em múltiplos de 3`;
+  $("proficiencyBudget").classList.toggle("budgetWarning", remain < 0 || PROFICIENCIES_PRESET.some(n => Number(prof[n] || 0) < 0 || Number(prof[n] || 0) % 3 !== 0));
+  $("proficiencyPreset").innerHTML = PROFICIENCIES_PRESET.map(n => {
+    const current = Math.max(0, Number(prof[n]) || 0);
+    const maxForThis = Math.min(99, current + Math.max(0, remain));
+    const choices = Array.from({length: Math.floor(maxForThis / 3) + 1}, (_,i) => i * 3);
+    if (!choices.includes(current)) choices.push(current);
+    choices.sort((a,b)=>a-b);
+    return `<label class="presetItem"><span>${escapeHtml(n)}</span><select data-prof="${escapeHtml(n)}">${choices.map(x=>`<option value="${x}" ${current===x?'selected':''}>${x || '—'}</option>`).join('')}</select></label>`;
+  }).join('');
+  $("proficiencyPreset").querySelectorAll('select').forEach(el=>el.onchange=()=>{
+    const p = parseProfs($("c_proficiencies").value), key = el.dataset.prof;
+    const oldValue = Math.max(0, Number(p[key]) || 0), nextValue = Math.max(0, Number(el.value) || 0);
+    const total = PROFICIENCIES_PRESET.reduce((a,n)=>a+(Math.max(0, Number(p[n]) || 0)),0) - oldValue + nextValue;
+    if (nextValue % 3 !== 0 || total > proficiencyBudget()) {
+      alert(`Limite excedido. Você tem ${proficiencyBudget()} pontos de proficiência no nível ${characterLevel()}.`);
+      el.value = String(oldValue); return;
+    }
+    p[key] = nextValue; $("c_proficiencies").value = JSON.stringify(p); renderCharacterPresets();
+  });
+
+  const limit = magicBudget(), usedMagic = magicPointsUsed(magic), magicRemain = limit - usedMagic;
+  $("c_magicPoints").value = String(limit);
+  const unknownMagics = magic.filter(n => !MAGICS_PRESET.some(m => m.name === n));
+  $("magicBudget").textContent = $("c_focusType").value === "magico"
+    ? `Espaços usados: ${usedMagic}/${limit} • Restam: ${magicRemain} • cada magia tem custo próprio.`
+    : "Escolha o foco de poder Combate mágico para liberar os espaços de magia.";
+  $("magicBudget").classList.toggle("budgetWarning", magicRemain < 0 || unknownMagics.length > 0 || (magic.length && $("c_focusType").value !== "magico"));
+  const legacyBox = $("magicLegacy");
+  if (legacyBox) {
+    legacyBox.innerHTML = unknownMagics.length
+      ? `<p>Magias antigas não reconhecidas: ${unknownMagics.map(escapeHtml).join(", ")}</p><button type="button" id="removeLegacyMagics">Remover entradas antigas</button>`
+      : "";
+    const removeLegacy = $("removeLegacyMagics");
+    if (removeLegacy) removeLegacy.onclick = () => { $("c_magics").value = JSON.stringify(magic.filter(n => !unknownMagics.includes(n))); renderCharacterPresets(); };
+  }
+  $("magicPreset").innerHTML = MAGICS_PRESET.map(m => {
+    const checked = magic.includes(m.name), disabled = !checked && (limit === 0 || m.points > magicRemain);
+    return `<label class="presetItem magicPresetItem"><input type="checkbox" data-magic="${escapeHtml(m.name)}" ${checked?'checked':''} ${disabled?'disabled':''}> <span>${escapeHtml(m.name)}<small>${m.points} espaços · ${m.fatigue} cansaço</small></span></label>`;
+  }).join('');
+  $("magicPreset").querySelectorAll('input').forEach(el=>el.onchange=()=>{
+    let names = parseMagics($("c_magics").value);
+    if (el.checked) {
+      const m = MAGICS_PRESET.find(x => x.name === el.dataset.magic);
+      const nextTotal = magicPointsUsed(names) + (m?.points || 0);
+      if ($("c_focusType").value !== "magico" || nextTotal > magicBudget()) {
+        alert(`Essa magia excede os espaços disponíveis (${magicBudget()} no total).`); el.checked = false; return;
+      }
+      names.push(el.dataset.magic);
+    } else names = names.filter(x => x !== el.dataset.magic);
+    $("c_magics").value = JSON.stringify(names); renderCharacterPresets();
+  });
 }
+$("c_level").addEventListener("input", renderCharacterPresets);
+$("c_focusType").addEventListener("change", renderCharacterPresets);
+$("c_focusLevel").addEventListener("input", renderCharacterPresets);
 function openCharacter(character = null) {
   editingCharacter = character;
   pendingPortrait = character?.portrait || "";
   const defaults = {
-    name: "", universe: "", appearance: "", weapon: "", personality: "", life: 100, fatigue: 20,
-    defenses: "", strength: 0, speed: 0, intelligence: 0, build: 0, vigor: 0, luck: 0, focus: 0, proficiencies: "", magics: "", magicPoints: 10, powers: "",
+    name: "", universe: "", appearance: "", weapon: "", personality: "", level: 1, life: 100, fatigue: 20,
+    defenses: "", strength: 0, speed: 0, intelligence: 0, build: 0, vigor: 0, luck: 0, focus: 0, proficiencies: "{}", magics: "[]", magicPoints: 0, focusType: "", focusLevel: 1, powers: "",
     weaknesses: "", history: ""
   };
   const data = { ...defaults, ...(character || {}) };
   data.maxLife = character?.maxLife ?? character?.life ?? 100;
   data.fatigueMax = character?.fatigueMax ?? 20;
+  data.fatigue = character?.fatigue ?? data.fatigueMax;
+  data.level = character?.level ?? 1;
+  data.focusLevel = character?.focusLevel ?? 1;
+  data.focusType = character?.focusType ?? (parseMagics(character?.magics).length ? "magico" : "");
   characterFields.forEach(field => {
-    const value = data[field] ?? "";
+    let value = data[field] ?? "";
+    if (field === "proficiencies") value = JSON.stringify(parseProfs(value));
+    if (field === "magics") value = JSON.stringify(parseMagics(value));
     $("c_" + field).value = value;
   });
   $("c_portrait").value = "";
@@ -1199,16 +1332,29 @@ $("saveCharacter").onclick = async () => {
   const character = editingCharacter || { id: uid() };
   characterFields.forEach(field => {
     const value = $("c_" + field).value;
-    character[field] = ["life","fatigue","maxLife","fatigueMax","strength","speed","intelligence","build","vigor","luck","focus"].includes(field) ? Number(value) || 0 : value;
+    character[field] = ["level","life","fatigue","maxLife","fatigueMax","strength","speed","intelligence","build","vigor","luck","focus","focusLevel","magicPoints"].includes(field) ? Number(value) || 0 : value;
   });
   character.portrait = pendingPortrait;
   if (!(character.maxLife >= 1)) character.maxLife = Math.max(1, character.life);
   if (!(character.fatigueMax >= 1)) character.fatigueMax = 20;
-  // Cansaço sempre nasce cheio; depois o jogador controla a queda manualmente.
+  character.level = clamp(Math.floor(Number(character.level) || 1), 1, 99);
+  character.focusLevel = clamp(Math.floor(Number(character.focusLevel) || 1), 1, 99);
+  character.fatigue = clamp(Math.round(Number(character.fatigue) || 0), 0, character.fatigueMax);
+  // Cansaço sempre nasce cheio; em edições, o valor atual pode ser ajustado manualmente.
   if (isNew) character.fatigue = character.fatigueMax;
-  const profTotal = Object.values(parseProfs(character.proficiencies)).reduce((a,b)=>a+(Number(b)||0),0);
-  if (profTotal > 21 || Object.values(parseProfs(character.proficiencies)).some(v => Number(v)%3!==0)) { alert("Proficiências inválidas: máximo 21 e somente múltiplos de 3."); return; }
-  if (parseMagics(character.magics).length > (Number(character.magicPoints)||10)) { alert("Você excedeu o limite de magias iniciais."); return; }
+  const prof = parseProfs(character.proficiencies);
+  const profTotal = PROFICIENCIES_PRESET.reduce((a,n)=>a+(Math.max(0, Number(prof[n]) || 0)),0);
+  const profInvalid = PROFICIENCIES_PRESET.some(n => (Number(prof[n]) || 0) < 0 || (Number(prof[n]) || 0) % 3 !== 0);
+  if (profTotal > 21 + 6 * (character.level - 1) || profInvalid) { alert(`Proficiências inválidas: máximo ${21 + 6 * (character.level - 1)} pontos no nível ${character.level}, distribuídos em múltiplos de 3.`); return; }
+  const spellNames = parseMagics(character.magics);
+  const knownNames = new Set(MAGICS_PRESET.map(m => m.name));
+  if (spellNames.some(n => !knownNames.has(n))) { alert("A ficha contém uma magia que não existe na lista predefinida. Remova-a e selecione novamente."); return; }
+  character.magicPoints = character.focusType === "magico" ? 10 + 3 * (character.focusLevel - 1) : 0;
+  const spellUsed = magicPointsUsed(spellNames);
+  if (spellNames.length && character.focusType !== "magico") { alert("Para selecionar magias, escolha o foco de poder Combate mágico."); return; }
+  if (spellUsed > character.magicPoints) { alert(`Magias ocupam ${spellUsed} espaços, mas o personagem só tem ${character.magicPoints}.`); return; }
+  character.proficiencies = JSON.stringify(Object.fromEntries(PROFICIENCIES_PRESET.map(n => [n, Math.max(0, Number(prof[n]) || 0)])));
+  character.magics = JSON.stringify(spellNames);
 
   if (isNew) state.characters.push(character);
 

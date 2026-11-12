@@ -4,7 +4,7 @@ const ROOM = new URLSearchParams(location.search).get("sala"), PREFIX = "espacoz
 const bigIds = new Map(), bigList = [];
 function packBig(o) { const ids = new Set(); const obj = JSON.parse(JSON.stringify(o, (k, v) => { if (typeof v === "string" && v.length > 800) { if (!bigIds.has(v)) { bigIds.set(v, bigList.length); bigList.push(v); } ids.add(bigIds.get(v)); return "§" + bigIds.get(v); } return v; })); return { obj, ids }; }
 const unpackBig = (o, assets) => JSON.parse(JSON.stringify(o), (k, v) => typeof v === "string" && /^§\d+$/.test(v) ? assets.get(+v.slice(1)) : v);
-const SHEET = ["name", "universe", "appearance", "weapon", "personality", "life", "fatigue", "maxLife", "fatigueMax", "defenses", "build", "strength", "speed", "intelligence", "proficiencies", "powers", "weaknesses", "history", "inventory", "notes", "bag"];
+const SHEET = ["name", "universe", "appearance", "weapon", "personality", "level", "life", "fatigue", "maxLife", "fatigueMax", "defenses", "build", "strength", "speed", "intelligence", "vigor", "luck", "focus", "focusType", "focusLevel", "proficiencies", "magics", "magicPoints", "powers", "weaknesses", "history", "inventory", "notes", "bag"];
 const mk = (tag, id, html, cls) => { const e = document.createElement(tag); if (id) e.id = id; if (cls) e.className = cls; if (html) e.innerHTML = html; document.body.append(e); return e; };
 const hasPeer = () => typeof Peer !== "undefined";
 ROOM ? playerMode() : dmMode();
@@ -54,7 +54,7 @@ function dmMode() {
       if (!p.charId) return sendRoster(p);
       ids.forEach(i => { if (!p.sent.has(i)) { p.sent.add(i); p.conn.send({ t: "asset", id: i, data: bigList[i] }); } });
       const ch = state.characters.find(x => x.id === p.charId), sheet = {}; if (ch) SHEET.forEach(k => sheet[k] = ch[k]);
-      p.conn.send({ t: "state", scene: obj, chars, sheet: ch ? sheet : null, you: p.charId, bestiary: window.zeroBest?.(p.charId) || [] });
+      p.conn.send({ t: "state", scene: obj, chars, sheet: ch ? sheet : null, you: p.charId, bestiary: window.zeroBest?.(p.charId) || [], clues: window.zeroCluesFor?.(p.charId) || [], urgency: window.zeroPublicUrgency?.() || null });
     });
   }
   const sched = ms => { if (timer || !conns.size) return; timer = setTimeout(() => { timer = 0; syncAll(); }, ms || 150); };
@@ -107,7 +107,7 @@ function dmMode() {
 // ================= JOGADOR =================
 function playerMode() {
   document.body.classList.add("player", "online"); document.title = "Espaço Zero — Jogador";
-  const assets = new Map(); let items = {}, bestiary = [], my = null, sheet = null, conn = null, peer = null, got = false, dragging = false, pending = null, lastScene = null, retryT = 0, lastMove = 0, noteT = {};
+  const assets = new Map(); let items = {}, bestiary = [], clues = [], urgency = null, my = null, sheet = null, conn = null, peer = null, got = false, dragging = false, pending = null, lastScene = null, retryT = 0, lastMove = 0, noteT = {};
   const pid = (() => { try { let v = localStorage.getItem("ez:pid"); if (!v) localStorage.setItem("ez:pid", v = Math.random().toString(36).slice(2) + Date.now().toString(36)); return v; } catch { return Math.random().toString(36).slice(2); } })();
   const banner = mk("div", "netBanner", "Conectando à sala…"), pick = mk("div", "pickModal", "", "pickModal hidden"), me = mk("div", "myPanel", "", "myPanel hidden");
   const say = t => { banner.textContent = t; banner.classList.toggle("hidden", !t); };
@@ -133,7 +133,7 @@ function playerMode() {
     else if (m.t === "log") { const l = $("mpLog"); if (l) { l.innerHTML = `<div>${escapeHtml(m.text)}</div>` + l.innerHTML; l.childNodes[6]?.remove(); } }
   }
   function apply(m) {
-    const sc = unpackBig(m.scene, assets); items = sc.items || {}; bestiary = Array.isArray(m.bestiary) ? m.bestiary : []; my = m.you; sheet = m.sheet; pick.classList.add("hidden");
+    const sc = unpackBig(m.scene, assets); items = sc.items || {}; bestiary = Array.isArray(m.bestiary) ? m.bestiary : []; clues = Array.isArray(m.clues) ? m.clues : []; urgency = m.urgency || null; my = m.you; sheet = m.sheet; pick.classList.add("hidden");
     const fresh = !got || lastScene !== sc.id; got = true; lastScene = sc.id;
     state = normalizeState({ scenes: [sc], active: sc.id, characters: m.chars, name: "Mesa" }); selected = null; render();
     const t = sc.tokens.find(x => x.characterId === my); if (t) document.querySelector(`[data-id="${t.id}"]`)?.classList.add("mine"); window.zeroFx?.();
@@ -151,7 +151,7 @@ function playerMode() {
   function drawSheet() {
     if (!sheet) return; me.classList.remove("hidden");
     if (!$("mpBody")) {
-      me.innerHTML = `<div class="mpHead"><b id="mpName"></b><button id="mpToggle">▾</button></div><div id="mpBody"><div id="mpVit"></div><details><summary>Ficha</summary><div id="mpInfo"></div></details><div id="mpBag"></div><label>Inventário<textarea id="mpInventory"></textarea></label><label>Anotações<textarea id="mpNotes"></textarea></label><div class="mpDice">${[4, 6, 8, 10, 12, 20, 100].map(s => `<button data-s="${s}" ${s === 20 ? 'class="primary"' : ""}>d${s}</button>`).join("")}</div><div id="mpLog" class="hint"></div></div>`;
+      me.innerHTML = `<div class="mpHead"><b id="mpName"></b><button id="mpToggle">▾</button></div><div id="mpBody"><div id="mpVit"></div><details><summary>Ficha</summary><div id="mpInfo"></div></details><details id="mpClueBox"><summary>🔎 Pistas e investigação</summary><div id="mpClues"></div></details><div id="mpBag"></div><label>Inventário<textarea id="mpInventory"></textarea></label><label>Anotações<textarea id="mpNotes"></textarea></label><div class="mpDice">${[4, 6, 8, 10, 12, 20, 100].map(s => `<button data-s="${s}" ${s === 20 ? 'class="primary"' : ""}>d${s}</button>`).join("")}</div><div id="mpLog" class="hint"></div></div>`;
       if (innerWidth < 700) $("mpBody").classList.add("hidden");
       $("mpToggle").onclick = () => $("mpBody").classList.toggle("hidden");
       me.querySelectorAll("[data-s]").forEach(b => b.onclick = () => send({ t: "roll", sides: +b.dataset.s }));
@@ -159,9 +159,16 @@ function playerMode() {
     }
     const pct = (v, m) => clamp(v / Math.max(1, m) * 100, 0, 100), L = Number(sheet.life) || 0, M = Number(sheet.maxLife) || 1, F = Number(sheet.fatigue) || 0, FM = Number(sheet.fatigueMax) || 1;
     $("mpName").textContent = sheet.name;
-    $("mpVit").innerHTML = `<div class="vitalRow"><span>Vida</span><div class="vitalBar life" style="--lost:${100 - pct(L, M)}"><i style="width:${pct(L, M)}%"></i></div><b>${L}/${M}</b></div><div class="actionRow hpRow">${[-5, -1, 1, 5].map(d => `<button data-k="life" data-d="${d}">${d > 0 ? "+" : "−"}${Math.abs(d)}</button>`).join("")}</div><div class="vitalRow"><span>Cansaço</span><div class="vitalBar fat"><i style="width:${pct(F, FM)}%"></i></div><b>${F}/${FM}</b></div><div class="actionRow hpRow">${[-5, -1, 1, 5].map(d => `<button data-k="fatigue" data-d="${d}">${d > 0 ? "+" : "−"}${Math.abs(d)}</button>`).join("")}</div>`;
+    $("mpVit").innerHTML = `<div class="vitalRow"><span>Vida</span><div class="vitalBar life" style="--lost:${100 - pct(L, M)}"><i style="width:${pct(L, M)}%"></i></div><b>${L}/${M}</b></div><div class="actionRow hpRow">${[-5, -1, 1, 5].map(d => `<button data-k="life" data-d="${d}">${d > 0 ? "+" : "−"}${Math.abs(d)}</button>`).join("")}</div><div class="vitalRow"><span>Cansaço</span><div class="vitalBar fat"><i style="width:${pct(F, FM)}%"></i></div><b>${F}/${FM}</b></div><div class="actionRow hpRow">${[-5, -1, 1, 5].map(d => `<button data-k="fatigue" data-d="${d}">${d > 0 ? "+" : "−"}${Math.abs(d)}</button>`).join("")}</div><div class="fatigueDirect"><label>Definir cansaço atual<input id="mpFatigueValue" type="number" min="0" max="${FM}" value="${F}"></label><button id="mpFatigueSet">Aplicar</button></div>`;
     $("mpVit").querySelectorAll("[data-k]").forEach(b => b.onclick = () => send({ t: "edit", k: b.dataset.k, d: +b.dataset.d }));
-    $("mpInfo").innerHTML = [["Força", "strength"], ["Velocidade", "speed"], ["Inteligência", "intelligence"], ["Defesas", "defenses"], ["Porte", "build"], ["Arma", "weapon"], ["Poderes", "powers"], ["Pontos fracos", "weaknesses"], ["Proficiências", "proficiencies"]].filter(([, k]) => sheet[k]).map(([n, k]) => `<p><b>${n}:</b> ${escapeHtml(sheet[k])}</p>`).join("");
+    if (document.activeElement !== $("mpFatigueValue")) $("mpFatigueValue").value = String(F);
+    $("mpFatigueValue").max = String(FM);
+    const applyFatigue = () => { const n = Number($("mpFatigueValue").value); if (!Number.isFinite(n)) return; send({ t: "edit", k: "fatigue", v: Math.max(0, Math.min(FM, Math.round(n))) }); };
+    $("mpFatigueSet").onclick = applyFatigue;
+    $("mpFatigueValue").onkeydown = e => { if (e.key === "Enter") applyFatigue(); };
+    const info = [["Nível", "level"], ["Força", "strength"], ["Velocidade", "speed"], ["Inteligência", "intelligence"], ["Vigor", "vigor"], ["Sorte", "luck"], ["Foco", "focus"], ["Defesas", "defenses"], ["Porte", "build"], ["Foco de poder", "focusType"], ["Nível do foco", "focusLevel"], ["Arma", "weapon"], ["Poderes", "powers"], ["Pontos fracos", "weaknesses"]];
+    $("mpInfo").innerHTML = info.filter(([, k]) => sheet[k] !== "" && sheet[k] != null).map(([n, k]) => `<p><b>${n}:</b> ${escapeHtml(k === "focusType" ? ({fisico:"Combate físico",distancia:"Combate à distância",magico:"Combate mágico"}[sheet[k]] || "Não definido") : sheet[k])}</p>`).join("") + `<p><b>Proficiências:</b> ${escapeHtml(typeof formatProficiencies === "function" ? formatProficiencies(sheet.proficiencies) : sheet.proficiencies || "Nenhuma")}</p><p><b>Magias:</b> ${escapeHtml(typeof formatMagics === "function" ? formatMagics(sheet.magics) : sheet.magics || "Nenhuma")}</p><p><b>Espaços de magia:</b> ${Number(sheet.magicPoints) || 0}</p>`;
+    $("mpClues").innerHTML = `${urgency?.public ? `<div class="playerUrgency"><b>${escapeHtml(urgency.title || "Investigação")}</b><strong>Rodada ${Number(urgency.round)||0}/${Number(urgency.limit)||0}</strong></div>` : ""}${clues.map(c => `<article class="playerClue"><b>${escapeHtml(c.title)}</b>${c.test ? `<small>${escapeHtml(c.test)}${c.dt ? ` · DT ${escapeHtml(c.dt)}` : ""}</small>` : ""}<p>${escapeHtml(c.description || "")}</p></article>`).join("") || `<p class="hint">Nenhuma pista revelada para este personagem.</p>`}`;
     [["mpInventory", "inventory"], ["mpNotes", "notes"]].forEach(([id, k]) => { if (document.activeElement !== $(id)) $(id).value = sheet[k] || ""; });
     window.zeroBagUI?.($("mpBag"), sheet.bag || [], items, send, bestiary);
   }

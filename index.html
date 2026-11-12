@@ -12,7 +12,7 @@
   <div class="brand"><i class="logoRing"></i><b>ESPAÇO ZERO</b><span>MESA VIRTUAL</span></div>
   <div class="toolbar">
     <button id="undoBtn" title="Desfazer (Ctrl+Z)">↶</button><button id="redoBtn" title="Refazer (Ctrl+Y)">↷</button><button id="playerWin" title="Abre a mesa do jogador em outra janela">🖥</button>
-    <button id="helpButton" title="Abrir tutorial">❔ Ajuda</button>
+    <button id="masterToolsToggle" title="Ferramentas do mestre">🕵 Mestre</button><button id="helpButton" title="Abrir tutorial">❔ Ajuda</button>
     <button id="mobileLibraryToggle" class="mobileOnly" aria-expanded="false">☰ Biblioteca</button>
     <button id="mobileInspectorToggle" class="mobileOnly" aria-expanded="false">🔎 Inspetor</button>
     <button id="newCampaign">✨ Nova</button>
@@ -145,6 +145,80 @@
 </div>
 
 
+
+<!-- Ferramentas de condução da sessão -->
+<div id="masterToolsPanel" class="masterToolsPanel hidden">
+  <div class="masterToolsHead"><div><h2>🕵 Ferramentas do Mestre</h2><p class="hint">Cenas, investigação, pistas, combate e interlúdios.</p></div><button id="masterToolsClose" aria-label="Fechar">✕</button></div>
+  <div class="gmTabs">
+    <button class="gmTab active" data-gm-tab="scene">🎬 Cena</button>
+    <button class="gmTab" data-gm-tab="investigation">🔎 Investigação</button>
+    <button class="gmTab" data-gm-tab="clues">🗂️ Pistas</button>
+    <button class="gmTab" data-gm-tab="combat">⚔️ Combate</button>
+    <button class="gmTab" data-gm-tab="interlude">☕ Interlúdio</button>
+  </div>
+  <section class="gmPane" data-gm-pane="scene">
+    <h3>🎬 Controle da cena atual</h3>
+    <p class="hint">Marque o tipo de cena e mantenha lembretes privados do mestre. Essas notas não são enviadas aos jogadores.</p>
+    <label>Tipo de cena<select id="gmSceneType"><option>Investigação</option><option>Ação / combate</option><option>Interação</option><option>Interlúdio</option></select></label>
+    <label>Objetivo, acontecimentos e notas privadas<textarea id="gmSceneNotes" placeholder="O que está acontecendo? O que os NPCs querem? Qual é a próxima virada?" rows="4"></textarea></label>
+    <hr>
+    <h3>🧭 Ações por rodada de investigação</h3>
+    <p class="hint">Controle uma ação de investigação por personagem em cada rodada. Pode registrar busca de pistas, ajuda, preparação ou outra abordagem.</p>
+    <div class="gmRoundHead"><span>Rodada de investigação</span><strong id="gmInvestigationRound">1</strong></div>
+    <div class="twoCols"><label>Personagem<select id="gmInvestigationCharacter"></select></label><label>Ação<select id="gmInvestigationAction"><option>Procurar pistas</option><option>Ajudar outro personagem</option><option>Facilitar a investigação</option><option>Usar habilidade ou item</option><option>Interrogar / conversar</option><option>Outra abordagem</option></select></label></div>
+    <label>O que fez / resultado<textarea id="gmInvestigationNote" placeholder="Perícia usada, DT, pista encontrada ou consequência..."></textarea></label>
+    <label class="checkLabel"><input id="gmInvestigationSuccess" type="checkbox"> A ação foi bem-sucedida</label>
+    <p class="hint">Regra opcional inspirada em Ordem: Facilitar a investigação com sucesso dá +2 ao próximo teste de procurar pistas de cada aliado nesta cena. O bônus não acumula; o mestre aplica no teste do Espaço Zero.</p>
+    <div id="gmInvestigationAssist" class="gmInvestigationAssist hint"></div>
+    <button id="gmInvestigationAdd" class="primary fullWidth">＋ Registrar ação desta rodada</button>
+    <div id="gmInvestigationList" class="gmInvestigationList"></div>
+    <div id="gmInvestigationHistory" class="gmInvestigationHistory"></div>
+    <div class="actionRow"><button id="gmInvestigationNext" class="primary">＋ Nova rodada</button><button id="gmInvestigationReset" class="danger">Reiniciar investigação</button></div>
+  </section>
+  <section class="gmPane hidden" data-gm-pane="investigation">
+    <h3>⏳ Urgência da investigação</h3>
+    <p class="hint">Conte rodadas até que um evento pressione o grupo. A consequência fica visível apenas para o mestre.</p>
+    <label>Nome da investigação<input id="gmUrgencyTitle" placeholder="Ex.: Arquivo subterrâneo"></label>
+    <div class="twoCols"><label>Urgência<select id="gmUrgencyPreset"><option value="6">Muito baixa · 6 rodadas</option><option value="5">Baixa · 5 rodadas</option><option value="4">Média · 4 rodadas</option><option value="3">Alta · 3 rodadas</option><option value="2">Muito alta · 2 rodadas</option><option value="custom">Personalizada</option></select></label><label>Limite de rodadas<input id="gmUrgencyLimit" type="number" min="1" max="99" value="4"></label></div>
+    <label>O que acontece quando o tempo acaba?<textarea id="gmUrgencyConsequence" placeholder="Ex.: os reforços chegam; a pista é destruída; a criatura conclui o ritual..."></textarea></label>
+    <label class="checkLabel"><input id="gmUrgencyPublic" type="checkbox"> Mostrar contador aos jogadores</label>
+    <div class="gmClock"><strong id="gmUrgencyCount">0 / 4</strong><div class="gmProgress"><i id="gmUrgencyProgress"></i></div><small id="gmUrgencyState" class="hint">Contador parado</small></div>
+    <div class="actionRow"><button id="gmUrgencyStart" class="primary">▶ Iniciar / reiniciar</button><button id="gmUrgencyNext">＋ Próxima rodada</button><button id="gmUrgencyReset">Zerar</button></div>
+    <hr>
+    <h3>🩸 Relógios de ameaça</h3>
+    <p class="hint">Crie quantos marcadores precisar: ritual, perseguição, alarme, corrupção, reforços ou eventos. Cada um tem limite e consequência próprios.</p>
+    <div id="gmClockList" class="gmClockList"></div>
+    <div class="gmClockNew"><div class="twoCols"><label>Nome do novo relógio<input id="gmClockNewTitle" placeholder="Ex.: Ritual se completando"></label><label>Etapas<input id="gmClockNewMax" type="number" min="1" max="99" value="6"></label></div><button id="gmClockAdd" class="primary fullWidth">＋ Criar relógio</button></div>
+  </section>
+  <section class="gmPane hidden" data-gm-pane="clues">
+    <h3>🗂️ Quadro de pistas e pontos de interesse</h3>
+    <p class="hint">Separe pistas principais e complementares, guarde informações secretas e revele cada pista individualmente ou para todo o grupo.</p>
+    <label>Nome da pista<input id="gmClueTitle" placeholder="Ex.: Marca de queimadura no chão"></label>
+    <label>Tipo<select id="gmClueType"><option value="principal">Pista principal</option><option value="complementar">Pista complementar</option></select></label>
+    <label>Descrição / o que pode ser descoberto<textarea id="gmClueDescription" placeholder="Informação que os personagens podem descobrir..."></textarea></label>
+    <div class="twoCols"><label>Perícia ou abordagem<input id="gmClueTest" placeholder="Ex.: Investigação"></label><label>DT<input id="gmClueDT" type="number" min="0" placeholder="Opcional"></label></div>
+    <button id="gmClueAdd" class="primary fullWidth">＋ Criar pista secreta</button>
+    <div id="gmClueList" class="gmClueList"></div>
+  </section>
+  <section class="gmPane hidden" data-gm-pane="combat">
+    <h3>🛡️ Controle de reações</h3>
+    <p class="hint">Marcador opcional para acompanhar quem já gastou sua reação nesta rodada. A lista acompanha os combatentes com iniciativa; ao avançar a rodada, os marcadores são liberados.</p>
+    <div class="gmRoundHead"><span>Rodada de combate</span><strong id="gmReactionRound">1</strong></div>
+    <div id="gmReactionList" class="gmReactionList"></div>
+    <button id="gmReactionReset" class="fullWidth">↺ Liberar todas as reações</button>
+    <p class="hint">Referência inspirada em Ordem Paranormal: ações de reação e defesas reativas são controladas por rodada. Ajuste ao funcionamento da sua mesa.</p>
+  </section>
+  <section class="gmPane hidden" data-gm-pane="interlude">
+    <h3>☕ Controle de interlúdio</h3>
+    <p class="hint">Registre até duas ações diferentes por personagem no intervalo da missão. O mestre decide quais ações e recuperações se aplicam.</p>
+    <div class="twoCols"><label>Personagem<select id="gmInterludeCharacter"></select></label><label>Ação<select id="gmInterludeAction"><option>Alimentação</option><option>Descansar</option><option>Tratar ferimentos</option><option>Revisar pistas / o caso</option><option>Preparar equipamento</option><option>Estudar fenômeno</option><option>Treinar</option><option>Fortalecer vínculo</option><option>Outra ação</option></select></label></div>
+    <label>Observação<textarea id="gmInterludeNote" placeholder="Resultado, custo, item usado ou observação..."></textarea></label>
+    <button id="gmInterludeAdd" class="primary fullWidth">＋ Registrar ação</button>
+    <div id="gmInterludeList" class="gmInterludeList"></div>
+    <button id="gmInterludeReset" class="danger fullWidth">↺ Reiniciar ações de todos</button>
+  </section>
+</div>
+
 <!-- Criador de objetos -->
 <div id="objectModal" class="modal hidden">
   <div class="dialog objectDialog">
@@ -180,16 +254,18 @@
         <label class="full">Aparência<textarea id="c_appearance"></textarea></label><label>Arma inicial<input id="c_weapon"></label><label>Personalidade<textarea id="c_personality"></textarea></label>
       </div></details>
       <details class="sheetGroup" open><summary>⚔ Estado e atributos</summary><div class="sheet sheetInner">
-        <label>Vida atual<input id="c_life" type="number" value="100"></label><label>Vida máxima<input id="c_maxLife" type="number" value="100"></label>
-        <label>Cansaço atual<input id="c_fatigue" type="number" value="20" readonly></label><label>Cansaço máximo<input id="c_fatigueMax" type="number" value="20"></label><label class="full"><small class="hint">🔋 Ao criar a ficha, o cansaço começa automaticamente cheio. Depois o próprio jogador reduz manualmente conforme gastar.</small></label>
+        <label>Nível do personagem<input id="c_level" type="number" min="1" max="99" value="1"></label><label>Vida atual<input id="c_life" type="number" min="0" value="100"></label><label>Vida máxima<input id="c_maxLife" type="number" min="1" value="100"></label>
+        <label>Cansaço atual<input id="c_fatigue" type="number" min="0" value="20"></label><label>Cansaço máximo<input id="c_fatigueMax" type="number" min="1" value="20"></label><label class="full"><small class="hint">🔋 Ao criar a ficha, o cansaço começa cheio. Depois o jogador pode informar o valor atual ou usar os botões de gasto/recuperação.</small></label>
         <label>Defesas<textarea id="c_defenses"></textarea></label><label>Porte / Presença<input id="c_build" type="number" value="0"></label>
         <label>Força<input id="c_strength" type="number" value="0"></label><label>Velocidade / Agilidade<input id="c_speed" type="number" value="0"></label><label>Inteligência<input id="c_intelligence" type="number" value="0"></label>
         <label>Vigor<input id="c_vigor" type="number" value="0"></label><label>Sorte<input id="c_luck" type="number" value="0"></label><label>Foco<input id="c_focus" type="number" value="0"></label>
         <label class="full"><small class="hint">💡 Sugestão: Força, Velocidade/Agilidade, Inteligência, Porte/Presença, Vigor, Sorte e Foco. O mestre decide como cada um influencia os testes.</small></label>
+        <label>Foco de poder<select id="c_focusType"><option value="">Ainda não definido</option><option value="fisico">Combate físico</option><option value="distancia">Combate à distância</option><option value="magico">Combate mágico</option></select></label><label>Nível do foco<input id="c_focusLevel" type="number" min="1" max="99" value="1"></label>
+        <label class="full"><small class="hint">Combate físico/distância: 5 pontos por nível para habilidades de força e velocidade. Combate mágico: 10 espaços no nível 1, +3 por nível evoluído.</small></label>
       </div></details>
       <details class="sheetGroup"><summary>✧ Poderes, especialidades e história</summary><div class="sheet sheetInner">
         <div class="full presetPanel"><b>🎯 Proficiências — orçamento máximo: 21 pontos (somente múltiplos de 3)</b><div id="proficiencyBudget" class="hint"></div><div id="proficiencyPreset" class="presetGrid"></div><input id="c_proficiencies" type="hidden"></div>
-        <div class="full presetPanel"><b>✨ Magias — até 10 pontos/seleções iniciais</b><div id="magicBudget" class="hint"></div><div id="magicPreset" class="presetGrid magicGrid"></div><input id="c_magics" type="hidden"><input id="c_magicPoints" type="hidden" value="10"></div><label class="full">Focos de poder<textarea id="c_powers" placeholder="Ex.: Combate físico — nível 1; Combate à distância — nível 2"></textarea></label>
+        <div class="full presetPanel"><b>✨ Magias — espaços conforme o foco mágico</b><div id="magicBudget" class="hint"></div><small class="hint">Os espaços foram associados aos custos de Cansaço por proporção (3→2, 6→4, 9→6, 12→8, 15→10, 21→14), porque o documento lista as duas escalas, mas não nomeia a correspondência de cada magia.</small><div id="magicPreset" class="presetGrid magicGrid"></div><div id="magicLegacy" class="hint"></div><input id="c_magics" type="hidden"><input id="c_magicPoints" type="hidden" value="10"></div><label class="full">Focos de poder<textarea id="c_powers" placeholder="Ex.: Combate físico — nível 1; Combate à distância — nível 2"></textarea></label>
         <label class="full">Pontos fracos<textarea id="c_weaknesses"></textarea></label><label class="full">História<textarea id="c_history" class="historyField"></textarea></label>
       </div></details>
     </div>
@@ -267,5 +343,6 @@
 <script src="mesa2.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="online.js"></script>
+<script src="master-tools.js"></script>
 </body>
 </html>
