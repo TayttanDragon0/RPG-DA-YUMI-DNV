@@ -56,7 +56,59 @@ function objectIconSvg(icon = "📦") {
 }
 const TORCH_ASSET_ID = "builtin-torch";
 function torchIconSvg() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><linearGradient id="wood" x2="1" y2="1"><stop stop-color="#c58a45"/><stop offset=".48" stop-color="#75401f"/><stop offset="1" stop-color="#3d2418"/></linearGradient><radialGradient id="glow"><stop stop-color="#fff3a0" stop-opacity=".9"/><stop offset="1" stop-color="#ff8b20" stop-opacity="0"/></radialGradient><linearGradient id="fire" x2="0" y2="1"><stop stop-color="#fff9b0"/><stop offset=".35" stop-color="#ffd34e"/><stop offset=".72" stop-color="#ff7b22"/><stop offset="1" stop-color="#c92d18"/></linearGradient></defs><circle cx="83" cy="48" r="49" fill="url(#glow)"/><path d="M74 63 L93 72 L65 151 Q61 157 55 153 L48 149Z" fill="url(#wood)" stroke="#3b2116" stroke-width="4"/><path d="M69 78 L87 85 L82 98 L63 91Z" fill="#d5a05d" stroke="#633719" stroke-width="3"/><path d="M57 67 C38 47 58 24 72 8 C73 29 91 30 88 51 C101 38 104 26 105 18 C127 46 116 72 98 82 C81 92 62 83 57 67Z" fill="url(#fire)" stroke="#e65b1d" stroke-width="3"/><path d="M76 70 C67 56 80 42 88 32 C88 47 101 54 93 69 C89 78 81 79 76 70Z" fill="#fff2a0"/><path d="M45 146 L65 153" stroke="#e1b47a" stroke-width="4" stroke-linecap="round"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<defs>
+<radialGradient id="gl" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset=".45" stop-color="#ff8a2a" stop-opacity=".28"/><stop offset="1" stop-color="#ff6a00" stop-opacity="0"/></radialGradient>
+<linearGradient id="wd" x1="0" x2="1"><stop offset="0" stop-color="#2a170b"/><stop offset=".3" stop-color="#7a4a24"/><stop offset=".55" stop-color="#9a6434"/><stop offset="1" stop-color="#2d190d"/></linearGradient>
+<linearGradient id="ir" x1="0" x2="1"><stop offset="0" stop-color="#23262d"/><stop offset=".35" stop-color="#7d838f"/><stop offset=".6" stop-color="#4a4f59"/><stop offset="1" stop-color="#1b1d23"/></linearGradient>
+<linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2a1c"/><stop offset=".55" stop-color="#1f150d"/><stop offset="1" stop-color="#0d0805"/></linearGradient>
+<radialGradient id="hot" cx="50%" cy="0%" r="90%"><stop offset="0" stop-color="#ffb347"/><stop offset=".6" stop-color="#c2410c" stop-opacity=".7"/><stop offset="1" stop-color="#3b2a1c" stop-opacity="0"/></radialGradient>
+<linearGradient id="f1" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#b91c1c"/><stop offset=".45" stop-color="#ea580c"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+<linearGradient id="f2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f97316"/><stop offset=".6" stop-color="#fbbf24"/><stop offset="1" stop-color="#fde68a"/></linearGradient>
+<linearGradient id="f3" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#fffbe6"/></linearGradient>
+<filter id="sh" x="-30%" y="-10%" width="160%" height="130%"><feDropShadow dx="2" dy="3" stdDeviation="2" flood-color="#000" flood-opacity=".55"/></filter>
+</defs>
+<g transform="translate(80 152) scale(.84) translate(-80 -152)">
+<ellipse cx="80" cy="150" rx="26" ry="5" fill="#000" opacity=".28"/>
+<circle cx="80" cy="56" r="56" fill="url(#gl)"><animate attributeName="opacity" values="1;.78;.95;.82;1" dur="1.3s" repeatCount="indefinite"/></circle>
+<g filter="url(#sh)">
+<!-- cabo -->
+<path d="M72 84 C73 108 71 132 69 150 C69 153 72 155 77 155 C82 155 86 153 86 150 C87 132 88 108 90 84 Z" fill="url(#wd)" stroke="#1d0f06" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M76 90 C76 112 75 134 74 150" stroke="#c18a52" stroke-width="1.4" fill="none" opacity=".55" stroke-linecap="round"/>
+<path d="M82 92 C83 110 82 130 82 148" stroke="#1d0f06" stroke-width="1.1" fill="none" opacity=".5" stroke-linecap="round"/>
+<path d="M71.5 118 q5 -3 9 0 q-4 4 -9 0z" fill="#3a2010" opacity=".8"/>
+<path d="M80 134 q5 -3 8 0 q-4 4 -8 0z" fill="#3a2010" opacity=".8"/>
+<ellipse cx="77.5" cy="152.5" rx="8" ry="2.6" fill="#caa070" opacity=".35"/>
+<!-- anel de ferro inferior -->
+<path d="M69.5 96 H92 L91.5 103 H70 Z" fill="url(#ir)" stroke="#111318" stroke-width="1.2"/>
+<circle cx="74" cy="99.5" r="1.1" fill="#b5bac4"/><circle cx="88" cy="99.5" r="1.1" fill="#b5bac4"/>
+<!-- cabeça de trapo -->
+<path d="M63 62 C61 70 64 80 70 90 L92 90 C98 80 101 70 99 62 C93 66 69 66 63 62 Z" fill="url(#rg)" stroke="#0d0805" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M65 70 C72 74 90 74 97 70" stroke="#6b4a2c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<path d="M67 78 C73 82 89 82 95 78" stroke="#6b4a2c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<path d="M70 86 C75 89 87 89 92 86" stroke="#6b4a2c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<path d="M66 70 C67 74 66 78 68 80" stroke="#8a6238" stroke-width="1" fill="none" opacity=".7"/>
+<path d="M63 62 C69 66 93 66 99 62 C97 58 66 58 63 62Z" fill="url(#hot)"/>
+<!-- brasa e piche escorrendo -->
+<path d="M68 66 q-1 7 1 10" stroke="#ff9d2e" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".9"><animate attributeName="opacity" values=".9;.5;.9" dur="1.6s" repeatCount="indefinite"/></path>
+<path d="M94 66 q1 5 -1 8" stroke="#ff9d2e" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>
+<!-- anel de ferro superior -->
+<path d="M60.5 59 H101.5 L99 67 H63 Z" fill="url(#ir)" stroke="#111318" stroke-width="1.3"/>
+<path d="M63 61 H99" stroke="#c9ced8" stroke-width="1" opacity=".55"/>
+<circle cx="66" cy="63.5" r="1.3" fill="#b5bac4"/><circle cx="80" cy="63.5" r="1.3" fill="#b5bac4"/><circle cx="95" cy="63.5" r="1.3" fill="#b5bac4"/>
+</g>
+<!-- chama -->
+<g transform="translate(80 62)">
+<path d="M -17 2 C -26 -12 -17 -26 -10 -38 C -9 -28 -4 -25 -1 -33 C 1 -45 7 -53 5 -66 C 17 -52 27 -36 23 -19 C 21 -8 14 -1 8 3 C 2 5 -9 5 -17 2 Z" fill="url(#f1)" ><animate attributeName="d" dur="1.15s" begin="0s" repeatCount="indefinite" values="M -17 2 C -26 -12 -17 -26 -10 -38 C -9 -28 -4 -25 -1 -33 C 1 -45 7 -53 5 -66 C 17 -52 27 -36 23 -19 C 21 -8 14 -1 8 3 C 2 5 -9 5 -17 2 Z;M -17 2 C -24 -14 -20 -30 -13 -42 C -11 -30 -6 -26 -2 -36 C 0 -50 -3 -58 -4 -70 C 12 -56 26 -40 23 -20 C 21 -8 14 -1 8 3 C 2 5 -9 5 -17 2 Z;M -17 2 C -27 -10 -15 -22 -8 -33 C -6 -24 -1 -22 3 -29 C 6 -41 14 -46 14 -58 C 22 -46 28 -32 23 -18 C 21 -8 14 -1 8 3 C 2 5 -9 5 -17 2 Z;M -17 2 C -26 -12 -17 -26 -10 -38 C -9 -28 -4 -25 -1 -33 C 1 -45 7 -53 5 -66 C 17 -52 27 -36 23 -19 C 21 -8 14 -1 8 3 C 2 5 -9 5 -17 2 Z" calcMode="spline" keyTimes="0;.33;.66;1" keySplines=".4 0 .6 1;.4 0 .6 1;.4 0 .6 1"/></path>
+<path d="M -12.2 2.4 C -18.7 -7.6 -12.2 -17.7 -7.2 -26.4 C -6.5 -19.2 -2.9 -17 -0.7 -22.8 C 0.7 -31.4 5 -37.2 3.6 -46.5 C 12.2 -36.4 19.4 -24.9 16.6 -12.7 C 15.1 -4.8 10.1 0.3 5.8 3.2 C 1.4 4.6 -6.5 4.6 -12.2 2.4 Z" fill="url(#f2)" ><animate attributeName="d" dur="0.95s" begin="-0.3s" repeatCount="indefinite" values="M -12.2 2.4 C -18.7 -7.6 -12.2 -17.7 -7.2 -26.4 C -6.5 -19.2 -2.9 -17 -0.7 -22.8 C 0.7 -31.4 5 -37.2 3.6 -46.5 C 12.2 -36.4 19.4 -24.9 16.6 -12.7 C 15.1 -4.8 10.1 0.3 5.8 3.2 C 1.4 4.6 -6.5 4.6 -12.2 2.4 Z;M -12.2 2.4 C -17.3 -9.1 -14.4 -20.6 -9.4 -29.2 C -7.9 -20.6 -4.3 -17.7 -1.4 -24.9 C 0 -35 -2.2 -40.8 -2.9 -49.4 C 8.6 -39.3 18.7 -27.8 16.6 -13.4 C 15.1 -4.8 10.1 0.3 5.8 3.2 C 1.4 4.6 -6.5 4.6 -12.2 2.4 Z;M -12.2 2.4 C -19.4 -6.2 -10.8 -14.8 -5.8 -22.8 C -4.3 -16.3 -0.7 -14.8 2.2 -19.9 C 4.3 -28.5 10.1 -32.1 10.1 -40.8 C 15.8 -32.1 20.2 -22 16.6 -12 C 15.1 -4.8 10.1 0.3 5.8 3.2 C 1.4 4.6 -6.5 4.6 -12.2 2.4 Z;M -12.2 2.4 C -18.7 -7.6 -12.2 -17.7 -7.2 -26.4 C -6.5 -19.2 -2.9 -17 -0.7 -22.8 C 0.7 -31.4 5 -37.2 3.6 -46.5 C 12.2 -36.4 19.4 -24.9 16.6 -12.7 C 15.1 -4.8 10.1 0.3 5.8 3.2 C 1.4 4.6 -6.5 4.6 -12.2 2.4 Z" calcMode="spline" keyTimes="0;.33;.66;1" keySplines=".4 0 .6 1;.4 0 .6 1;.4 0 .6 1"/></path>
+<path d="M -7.1 2.8 C -10.9 -3 -7.1 -8.9 -4.2 -14 C -3.8 -9.8 -1.7 -8.5 -0.4 -11.9 C 0.4 -16.9 2.9 -20.3 2.1 -25.7 C 7.1 -19.8 11.3 -13.1 9.7 -6 C 8.8 -1.4 5.9 1.6 3.4 3.3 C 0.8 4.1 -3.8 4.1 -7.1 2.8 Z" fill="url(#f3)" ><animate attributeName="d" dur="0.8s" begin="-0.55s" repeatCount="indefinite" values="M -7.1 2.8 C -10.9 -3 -7.1 -8.9 -4.2 -14 C -3.8 -9.8 -1.7 -8.5 -0.4 -11.9 C 0.4 -16.9 2.9 -20.3 2.1 -25.7 C 7.1 -19.8 11.3 -13.1 9.7 -6 C 8.8 -1.4 5.9 1.6 3.4 3.3 C 0.8 4.1 -3.8 4.1 -7.1 2.8 Z;M -7.1 2.8 C -10.1 -3.9 -8.4 -10.6 -5.5 -15.6 C -4.6 -10.6 -2.5 -8.9 -0.8 -13.1 C 0 -19 -1.3 -22.4 -1.7 -27.4 C 5 -21.5 10.9 -14.8 9.7 -6.4 C 8.8 -1.4 5.9 1.6 3.4 3.3 C 0.8 4.1 -3.8 4.1 -7.1 2.8 Z;M -7.1 2.8 C -11.3 -2.2 -6.3 -7.2 -3.4 -11.9 C -2.5 -8.1 -0.4 -7.2 1.3 -10.2 C 2.5 -15.2 5.9 -17.3 5.9 -22.4 C 9.2 -17.3 11.8 -11.4 9.7 -5.6 C 8.8 -1.4 5.9 1.6 3.4 3.3 C 0.8 4.1 -3.8 4.1 -7.1 2.8 Z;M -7.1 2.8 C -10.9 -3 -7.1 -8.9 -4.2 -14 C -3.8 -9.8 -1.7 -8.5 -0.4 -11.9 C 0.4 -16.9 2.9 -20.3 2.1 -25.7 C 7.1 -19.8 11.3 -13.1 9.7 -6 C 8.8 -1.4 5.9 1.6 3.4 3.3 C 0.8 4.1 -3.8 4.1 -7.1 2.8 Z" calcMode="spline" keyTimes="0;.33;.66;1" keySplines=".4 0 .6 1;.4 0 .6 1;.4 0 .6 1"/></path>
+</g>
+<!-- faíscas -->
+<circle cx="74" cy="40" r="1.4" fill="#ffd27a"><animate attributeName="cy" values="52;12" dur="1.9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1.9s" repeatCount="indefinite"/></circle>
+<circle cx="90" cy="44" r="1.1" fill="#ffb347"><animate attributeName="cy" values="50;8" dur="2.4s" begin="-.8s" repeatCount="indefinite"/><animate attributeName="cx" values="88;96;92" dur="2.4s" begin="-.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="2.4s" begin="-.8s" repeatCount="indefinite"/></circle>
+<circle cx="82" cy="40" r="1" fill="#fff2b0"><animate attributeName="cy" values="48;6" dur="2.1s" begin="-1.3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="2.1s" begin="-1.3s" repeatCount="indefinite"/></circle>
+</g>
+</svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 function builtInTorch() {
@@ -64,7 +116,8 @@ function builtInTorch() {
 }
 function ensureBuiltInAssets(assets) {
   const list = Array.isArray(assets) ? assets : [];
-  if (!list.some(a => a && a.id === TORCH_ASSET_ID)) list.unshift(builtInTorch());
+  const at = list.findIndex(a => a && a.id === TORCH_ASSET_ID);
+  if (at < 0) list.unshift(builtInTorch()); else list[at] = builtInTorch();
   return list;
 }
 function normalizeObjectProps(props) {
@@ -152,7 +205,9 @@ function normalizeState(loaded) {
   result.assets = ensureBuiltInAssets(Array.isArray(loaded.assets) ? loaded.assets : []);
   result.characters = Array.isArray(loaded.characters) ? loaded.characters : [];
   result.items = Array.isArray(loaded.items) ? loaded.items : [];
-  if (!result.items.some(i => i && i.id === TORCH_ASSET_ID)) result.items.unshift({ ...builtInTorch() });
+  { const at = result.items.findIndex(i => i && i.id === TORCH_ASSET_ID); if (at < 0) result.items.unshift({ ...builtInTorch() }); else result.items[at] = { ...builtInTorch() }; }
+  // Tochas já colocadas na mesa recebem a arte nova e passam a emitir luz.
+  result.scenes && result.scenes.forEach && result.scenes.forEach(sc => (sc.tokens || []).forEach(t => { if (t && t.assetId === TORCH_ASSET_ID) { t.src = torchIconSvg(); if (t.lightRadius == null) t.lightRadius = 440; } }));
   result.characters.forEach(c => {
     c.level = clamp(Math.floor(Number(c.level) || 1), 1, 99);
     c.focusLevel = clamp(Math.floor(Number(c.focusLevel) || 1), 1, 99);
@@ -349,6 +404,9 @@ function ensureVitals(o) {
   return o;
 }
 function isDead(token) {
+  // O mestre envia apenas o estado de derrota quando os PVs são secretos.
+  // Assim o jogador vê a consequência sem receber os valores privados.
+  if (token?.dead === true) return true;
   const o = vitalOwner(token);
   return !!o && Number(o.life) <= 0;
 }
@@ -443,6 +501,12 @@ function renderWorld() {
 }
 
 let fogRenderKey = "";
+const fogRefIds = new WeakMap(); let fogRefSeq = 0;
+function fogRefKey(value) {
+  if (!value || typeof value !== "object") return String(value ?? "");
+  let id = fogRefIds.get(value); if (!id) { id = ++fogRefSeq; fogRefIds.set(value, id); }
+  return id;
+}
 function drawFog() {
   const old = $("fogLayer");
   const f = scene().fog;
@@ -451,8 +515,12 @@ function drawFog() {
   const isPlayer = document.body.classList.contains("player");
   const own = isPlayer ? scene().tokens.find(t => t.characterId === window.zeroPlayerCharacterId) : null;
   const lightTokens = scene().tokens.map(t => ({ t, held: t.held || window.zeroHeld?.(t) || [] })).filter(x => x.held.some(h => Number(h.lightRadius) > 0));
-  const dynamicKey = [own ? `${Math.round(own.x/4)},${Math.round(own.y/4)},${own.w},${own.h}` : "", JSON.stringify(f.explored || []), lightTokens.map(({t,held}) => `${t.id}:${Math.round(t.x/4)},${Math.round(t.y/4)}:${held.map(h => `${h.itemId || ""}:${h.hand}:${h.lightRadius || 0}`).join("|")}`).join(";")].join(";");
-  const key = `${scene().id}|${f.player}|${JSON.stringify(ops)}|${window.zeroWallRevision || 0}|${(scene().walls || []).length}|${dynamicKey}|${zoom}`;
+  const explored = f.explored || [];
+  const exploredCount = Array.isArray(explored) ? explored.length : Object.keys(explored).length;
+  const opsKey = `${fogRefKey(ops)}:${ops.length}:${window.zeroFogRevision || 0}`;
+  const exploredKey = `${fogRefKey(explored)}:${exploredCount}:${window.zeroFogRevision || 0}`;
+  const dynamicKey = [own ? `${Math.round(own.x/4)},${Math.round(own.y/4)},${own.w},${own.h}` : "", exploredKey, lightTokens.map(({t,held}) => `${t.id}:${Math.round(t.x/4)},${Math.round(t.y/4)}:${held.map(h => `${h.itemId || ""}:${h.hand}:${h.lightRadius || 0}`).join("|")}`).join(";")].join(";");
+  const key = `${scene().id}|${f.player}|${opsKey}|${window.zeroWallRevision || 0}|${(scene().walls || []).length}|${dynamicKey}|${zoom}`;
   if (old?.isConnected && old.parentNode === $("world") && key === fogRenderKey) return;
   old?.remove();
   const rects = ops.map(o => `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" fill="${o.reveal ? "#000" : "#fff"}"/>`).join("");
@@ -519,7 +587,7 @@ function startFogRect(event) {
     window.removeEventListener("pointerup", up);
     window.removeEventListener("pointercancel", up);
     if (fogDraft && fogDraft.w > 8 && fogDraft.h > 8) {
-      scene().fog.ops.push(fogDraft);
+      scene().fog.ops.push(fogDraft); window.zeroFogRevision = (window.zeroFogRevision || 0) + 1;
       markDirty(reveal ? "Área revelada" : "Área coberta");
     }
     fogDraft = null;
@@ -592,33 +660,52 @@ function shouldPan(event) {
 function startPan(event) {
   event.preventDefault();
   event.stopPropagation();
-  const target = event.target;
-  try { target.setPointerCapture(event.pointerId); } catch {}
+  const pointerId = event.pointerId;
   const startX = event.clientX, startY = event.clientY;
   const oldX = panX, oldY = panY;
+  let moved = false;
   $("viewport").classList.add("is-panning");
 
+  // Ouve na janela: o gesto continua mesmo se o ponteiro sair do alvo original.
   const move = e => {
-    panX = oldX + e.clientX - startX;
-    panY = oldY + e.clientY - startY;
+    if (e.pointerId !== pointerId) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (!moved && Math.hypot(dx, dy) < 2) return;
+    moved = true;
+    panX = oldX + dx;
+    panY = oldY + dy;
     updateCamera();
   };
-  const up = () => {
-    target.removeEventListener("pointermove", move);
+  const up = e => {
+    if (e?.pointerId !== undefined && e.pointerId !== pointerId) return;
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", up);
     $("viewport").classList.remove("is-panning");
   };
-  target.addEventListener("pointermove", move);
-  target.addEventListener("pointerup", up, { once: true });
-  target.addEventListener("pointercancel", up, { once: true });
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
 }
 
-// Capture phase means Space/middle/right pan works even when the pointer is over a token or map.
+// Capture phase: navegação da câmera é separada da edição do mundo.
 $("viewport").addEventListener("pointerdown", event => {
-  // A mesa do jogador é somente leitura: apenas o token próprio pode receber gesto.
-  // Bloqueia também cliques no mapa/cenário que antes iniciavam pan ou seleção.
-  if (document.body.classList.contains("player")) {
+  const isPlayer = document.body.classList.contains("player");
+  if (isPlayer) {
     const ownToken = event.target.closest(".token.mine");
-    if (!ownToken || event.button !== 0) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    const visibleToken = event.target.closest(".token");
+    // O próprio personagem continua arrastável. Tokens visíveis de criaturas
+    // podem receber duplo clique para abrir a ficha pública, mas nunca se movem.
+    if (ownToken && event.button === 0 && !spaceHeld) return;
+    if (visibleToken && !ownToken) return;
+    // Arrastar o espaço vazio navega apenas a câmera; não altera o mundo.
+    if (shouldPan(event) || event.button === 0) {
+      startPan(event);
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
   }
   if (shouldPan(event)) {
     startPan(event);
@@ -646,8 +733,8 @@ window.addEventListener("wheel", event => {
   if (document.body.classList.contains("player")) { event.preventDefault(); event.stopImmediatePropagation(); }
 }, { capture: true, passive: false });
 window.addEventListener("keydown", event => {
-  if (document.body.classList.contains("player") && (event.code === "Space" || event.key === "+" || event.key === "-")) {
-    event.preventDefault(); event.stopImmediatePropagation(); spaceHeld = false;
+  if (document.body.classList.contains("player") && (event.key === "+" || event.key === "-")) {
+    event.preventDefault(); event.stopImmediatePropagation();
   }
 }, true);
 window.addEventListener("touchmove", event => {
@@ -820,7 +907,7 @@ function renderInspector() {
     $("flipToken").onclick = () => flipSelected();
     $("rotLeft").onclick = () => rotateSelected(-15);
     $("rotRight").onclick = () => rotateSelected(15);
-    $("resetFacing").onclick = () => { token.facingSide = "right"; token.facingRot = 0; markDirty("Direção reiniciada"); renderScene(); renderInspector(); };
+    $("resetFacing").onclick = () => { token.facingSide = "right"; token.facingRot = 0; markDirty("Direção reiniciada"); renderWorld(); renderInspector(); };
     box.querySelectorAll("[data-vital]").forEach(btn => btn.onclick = () => adjustVital(token, btn.dataset.vital, Number(btn.dataset.delta)));
     $("inspectInit").onchange = e => { token.init = e.target.value === "" ? undefined : Number(e.target.value); renderWorld(); markDirty("Iniciativa alterada"); };
     $("rollInit").onclick = () => { rollTokenInitiative(token); renderInspector(); renderWorld(); markDirty("Iniciativa rolada"); };
@@ -922,7 +1009,6 @@ $("panMode").onclick = () => {
 window.addEventListener("keydown", event => {
   const tag = event.target?.tagName;
   const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(tag) || event.target?.isContentEditable;
-  if (event.code === "Space" && document.body.classList.contains("player")) { event.preventDefault(); return; }
   if (event.code === "Space" && !typing) { spaceHeld = true; $("viewport").classList.add("pan-mode"); event.preventDefault(); }
   if (typing && event.key !== "Escape") return;
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
@@ -1072,12 +1158,12 @@ $("exprRoll").onclick = runExpression;
 $("exprInput").addEventListener("keydown", e => { if (e.key === "Enter") runExpression(); });
 
 // Fog of war controls.
-$("fogOn").onchange = e => { scene().fog.on = e.target.checked; if (!e.target.checked && fogTool) fogTool = null; renderWorld(); syncFogUi(); markDirty("Névoa alterada"); };
-$("fogPlayer").onchange = e => { scene().fog.player = e.target.checked; renderWorld(); markDirty("Modo da névoa alterado"); };
+$("fogOn").onchange = e => { scene().fog.on = e.target.checked; window.zeroFogRevision = (window.zeroFogRevision || 0) + 1; if (!e.target.checked && fogTool) fogTool = null; renderWorld(); syncFogUi(); markDirty("Névoa alterada"); };
+$("fogPlayer").onchange = e => { scene().fog.player = e.target.checked; window.zeroFogRevision = (window.zeroFogRevision || 0) + 1; renderWorld(); markDirty("Modo da névoa alterado"); };
 $("fogReveal").onclick = () => setFogTool("reveal");
 $("fogCover").onclick = () => setFogTool("cover");
-$("fogRevealAll").onclick = () => { const f = scene().fog; f.on = true; f.ops = [{ x: 0, y: 0, w: WORLD_W, h: WORLD_H, reveal: true }]; renderWorld(); syncFogUi(); markDirty("Tudo revelado"); };
-$("fogCoverAll").onclick = () => { const f = scene().fog; f.on = true; f.ops = []; renderWorld(); syncFogUi(); markDirty("Tudo coberto"); };
+$("fogRevealAll").onclick = () => { const f = scene().fog; f.on = true; f.ops = [{ x: 0, y: 0, w: WORLD_W, h: WORLD_H, reveal: true }]; window.zeroFogRevision = (window.zeroFogRevision || 0) + 1; renderWorld(); syncFogUi(); markDirty("Tudo revelado"); };
+$("fogCoverAll").onclick = () => { const f = scene().fog; f.on = true; f.ops = []; window.zeroFogRevision = (window.zeroFogRevision || 0) + 1; renderWorld(); syncFogUi(); markDirty("Tudo coberto"); };
 
 document.querySelectorAll("[data-die]").forEach(btn => btn.onclick = () => rollDice(Number(btn.dataset.die)));
 $("gridToggle").onclick = () => {
@@ -1162,7 +1248,7 @@ function placeLibraryItem(kind, id, x = null, y = null) {
   const py = y == null ? (rect.height / 2 - panY) / zoom : y;
   if (kind === "asset") {
     const asset = state.assets.find(item => item.id === id);
-    if (asset) { const token = { id: uid(), assetId: asset.id, name: asset.name, src: asset.src || "", icon: asset.icon || "📦", type: "Objeto", objectCategory: asset.category || "Objeto", objectDescription: asset.description || "", objectProps: normalizeObjectProps(asset.props), x: px - 75, y: py - 75, w: 150, h: 150, z: 20, locked: false }; scene().tokens.push(token); selected = token.id; }
+    if (asset) { const token = { id: uid(), assetId: asset.id, name: asset.name, src: asset.src || "", icon: asset.icon || "📦", type: "Objeto", objectCategory: asset.category || "Objeto", objectDescription: asset.description || "", objectProps: normalizeObjectProps(asset.props), lightRadius: Number(asset.lightRadius) || 0, lit: true, x: px - 75, y: py - 75, w: 150, h: 150, z: 20, locked: false }; scene().tokens.push(token); selected = token.id; }
   } else if (kind === "creature") {
     const creature = state.bestiary.find(item => item.id === id);
     if (creature) { const token = makeCreatureToken(creature, px - 75, py - 75); scene().tokens.push(token); selected = token.id; }

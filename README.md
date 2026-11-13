@@ -1,3 +1,38 @@
+# ESPAÇO ZERO — V21 (tocha, luz e bolsa)
+
+## O que mudou
+- **Tocha nova:** arte própria de tocha (cabo de madeira com veios, anéis de ferro, trapo com piche e chama animada em camadas, com faíscas e brilho). Substitui a arte antiga. Campanhas antigas recebem a arte nova automaticamente, inclusive as tochas já colocadas na mesa.
+- **Tocha solta no mapa ilumina:** qualquer objeto da mesa pode emitir luz. A tocha da biblioteca já vem com raio de 440 px (~14 quadrados). A luz abre a névoa (respeitando as paredes pintadas) e desenha um brilho quente com leve tremulação. No Inspetor de qualquer objeto há **Raio de luz** e **Acesa** (0 = sem luz).
+- **Correção da névoa:** o `zero.js` sobrescrevia o desenho da névoa e ignorava a luz das tochas e as áreas exploradas; agora ambas abrem a névoa de verdade.
+- **Qualquer objeto vai para a bolsa do jogador:**
+  - botão **🎒** em cada objeto da aba Objetos da biblioteca;
+  - no Inspetor de um objeto colocado na mesa: **Dar uma cópia** ou **Pegar do mapa** (move o objeto para a bolsa);
+  - janela 🎁: **Dar objeto da biblioteca**, **Bolsas dos jogadores** (vê e remove o que cada um carrega) e o inventário do mestre, agora com escolha de personagem por botões (sem digitar ID).
+- **Bolsa do jogador:** corrigido o bug em que a imagem do item vazava da caixa e cobria os botões.
+- **Reset direção:** o botão chamava uma função inexistente (`renderScene`); corrigido.
+
+---
+
+# ESPAÇO ZERO — V20 (experiência do jogador expandida)
+
+## O que foi ampliado nesta revisão
+- **Feed de atividade:** o jogador recebe os acontecimentos públicos recentes da sessão e atualizações ao vivo. Registros privados do bestiário e detalhes de entrega de itens não são transmitidos indiscriminadamente; criaturas ocultas não geram avisos ao desaparecer.
+- **Morte de criaturas:** o mestre envia um estado explícito de derrotado mesmo quando os pontos de vida ficam ocultos; o token do jogador muda visualmente e a derrota aparece no feed.
+- **Movimento remoto com caminhada:** arrastos do mestre são capturados em fase de captura e enviados em pacotes curtos. O jogador interpola posições sem reiniciar a transição em cada pacote, aplica balanço visual de caminhada e mantém a referência do token para reduzir consultas por frame.
+- **Ficha pública de criaturas:** clique em criaturas abre apenas as etapas do bestiário já reveladas para aquele personagem. Criaturas ainda não investigadas mostram um cartão sem atributos secretos.
+- **Bolsa e inventário:** a bolsa do personagem é apresentada em aba própria; entregas, equipamentos e alterações são recebidos no estado do personagem.
+- **Dados para todos:** rolagens feitas pelo mestre ou pelo jogador são retransmitidas aos clientes com resultado e animação.
+- **Névoa otimizada:** a chave de cache deixou de serializar as listas completas de operações e exploração a cada render; usa referências, contagens e revisão explícita, recalculando somente quando os dados relevantes mudam.
+
+## Validação realizada
+- Teste de navegador Chromium com conexão simulada: painel do jogador, cinco abas, bolsa com tocha, abertura da ficha do Mimido e exibição apenas das informações liberadas, pedido de rolagem, animação do dado, interpolação de movimento remoto, estado de criatura derrotada e feed de eventos — aprovado, sem erros JavaScript no console.
+- Teste de navegador Chromium do lado do mestre com conexão simulada: abertura da sala, envio de estado, preservação do ID da criatura sem expor PVs ocultos, entrega da tocha ao personagem, equipar na mão esquerda, transmissão de arrasto de criatura, retransmissão da rolagem do mestre e envio do estado de derrota — aprovado, sem erros JavaScript no console.
+- Os arquivos JavaScript também passaram por `node --check`; o CSS e o HTML foram analisados estruturalmente.
+
+**Limitação restante:** esses testes simulam o canal de conexão dentro do navegador. Uma sessão PeerJS/WebRTC real com mestre e pelo menos dois dispositivos ainda precisa ser validada com internet e a campanha publicada.
+
+---
+
 # ESPAÇO ZERO — V19 (player, movimento, névoa e equipamentos)
 
 ## Alterações desta revisão
